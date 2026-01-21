@@ -1,0 +1,7 @@
+{
+  "name": "SocietySync",
+  "description": "A comprehensive housing society management platform for maintenance, notices, and complaint resolution with AI-powered assistance.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
