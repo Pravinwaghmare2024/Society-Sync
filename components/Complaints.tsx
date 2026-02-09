@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
-import { Complaint, UserRole } from '../types';
-import { analyzeComplaint } from '../services/geminiService';
+import { Complaint, UserRole } from '../types.ts';
+import { analyzeComplaint } from '../services/geminiService.ts';
 
 interface ComplaintsProps {
   role: UserRole;
@@ -23,7 +22,6 @@ const Complaints: React.FC<ComplaintsProps> = ({ role, complaints, addComplaint,
     e.preventDefault();
     setIsAnalyzing(true);
     
-    // AI analysis
     const analysis = await analyzeComplaint(description);
 
     addComplaint({

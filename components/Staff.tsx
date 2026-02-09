@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StaffMember, StaffRole, UserRole } from '../types';
+import { StaffMember, StaffRole, UserRole } from '../types.ts';
 
 interface StaffProps {
   role: UserRole;
@@ -14,14 +14,12 @@ const Staff: React.FC<StaffProps> = ({ role, staff, userUnit, addStaff, deleteSt
   const [filter, setFilter] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Form states
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [staffRole, setStaffRole] = useState<StaffRole>(StaffRole.CLEANING);
   const [floors, setFloors] = useState('');
   const [availability, setAvailability] = useState('');
 
-  // Logic to identify resident's floor from unit string like "A-101" -> floor 1
   const residentFloor = userUnit ? parseInt(userUnit.split('-')[1]?.substring(0, 1)) || 1 : null;
 
   const filteredStaff = staff.filter(s => {
@@ -46,7 +44,6 @@ const Staff: React.FC<StaffProps> = ({ role, staff, userUnit, addStaff, deleteSt
       availability
     });
 
-    // Reset and close
     setName('');
     setPhone('');
     setStaffRole(StaffRole.CLEANING);

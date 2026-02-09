@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { MaintenanceRecord, UserRole } from '../types';
+import { MaintenanceRecord, UserRole } from '../types.ts';
 
 interface MaintenanceProps {
   role: UserRole;
@@ -120,7 +119,7 @@ const Maintenance: React.FC<MaintenanceProps> = ({ role, records, onPay }) => {
                     <div className="font-semibold text-slate-900">{record.month} 2023</div>
                   </td>
                   <td className="px-6 py-4 text-slate-600 font-medium">{record.unit}</td>
-                  <td className="px-6 py-4 text-slate-900 font-bold">₹{record.amount}</td>
+                  <td className="px-6 py-4 text-slate-900 font-bold">₹${record.amount}</td>
                   <td className="px-6 py-4 text-slate-500 text-sm">{record.dueDate}</td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${

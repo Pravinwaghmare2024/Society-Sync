@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { UserRole, MaintenanceRecord, Complaint, Notice } from '../types';
+import { UserRole, MaintenanceRecord, Complaint, Notice } from '../types.ts';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface DashboardProps {

@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
-import { Notice, UserRole } from '../types';
-import { generateNoticeContent } from '../services/geminiService';
+import { Notice, UserRole } from '../types.ts';
+import { generateNoticeContent } from '../services/geminiService.ts';
 
 interface NoticesProps {
   role: UserRole;

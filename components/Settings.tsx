@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SocietySettings, SystemConfig, DatabaseMode, User, UserRole, StaffMember, StaffRole } from '../types';
+import { SocietySettings, SystemConfig, DatabaseMode, User, UserRole, StaffMember, StaffRole } from '../types.ts';
 
 interface SettingsProps {
   settings: SocietySettings;
@@ -26,9 +26,7 @@ const Settings: React.FC<SettingsProps> = ({
   const [localSettings, setLocalSettings] = useState(settings);
   const [localConfig, setLocalConfig] = useState(config);
 
-  // New User Form State
   const [newUser, setNewUser] = useState({ name: '', username: '', password: '', unit: '', role: UserRole.RESIDENT, email: '' });
-  // New Staff Form State
   const [newStaff, setNewStaff] = useState({ name: '', phone: '', role: StaffRole.CLEANING, availability: '', floors: '' });
 
   const handleSaveSociety = () => {

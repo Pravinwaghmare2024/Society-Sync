@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, MaintenanceRecord, Notice, Complaint, StaffMember, SocietySettings, SystemConfig } from './types';
-import { MOCK_USERS, MOCK_MAINTENANCE, MOCK_NOTICES, MOCK_COMPLAINTS, MOCK_STAFF } from './constants';
-import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import Maintenance from './components/Maintenance';
-import Notices from './components/Notices';
-import Complaints from './components/Complaints';
-import Staff from './components/Staff';
-import Settings from './components/Settings';
+import { User, UserRole, MaintenanceRecord, Notice, Complaint, StaffMember, SocietySettings, SystemConfig } from './types.ts';
+import { MOCK_USERS, MOCK_MAINTENANCE, MOCK_NOTICES, MOCK_COMPLAINTS, MOCK_STAFF } from './constants.tsx';
+import Sidebar from './components/Sidebar.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import Maintenance from './components/Maintenance.tsx';
+import Notices from './components/Notices.tsx';
+import Complaints from './components/Complaints.tsx';
+import Staff from './components/Staff.tsx';
+import Settings from './components/Settings.tsx';
 
 const DEFAULT_SOCIETY: SocietySettings = {
   name: "Grand View Residency",
@@ -24,7 +24,7 @@ const DEFAULT_CONFIG: SystemConfig = {
   apiEndpoint: 'https://api.societysync.com/v1',
   authToken: '',
   isMaintenanceMode: false,
-  version: '3.2.0-IIS-PROD',
+  version: '3.2.1-IIS-STABLE',
   webServer: {
     basePath: '/',
     staticCacheMaxAge: 7,
@@ -45,7 +45,6 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Entity states with persistence
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>(MOCK_MAINTENANCE);
   const [notices, setNotices] = useState<Notice[]>(MOCK_NOTICES);
@@ -54,7 +53,6 @@ const App: React.FC = () => {
   const [society, setSociety] = useState<SocietySettings>(DEFAULT_SOCIETY);
   const [config, setConfig] = useState<SystemConfig>(DEFAULT_CONFIG);
   
-  // Login states
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
@@ -75,7 +73,6 @@ const App: React.FC = () => {
     if (savedConfig) setConfig(JSON.parse(savedConfig));
   }, []);
 
-  // Sync effects for persistence (Simulating IIS Local Persistent Storage)
   useEffect(() => { localStorage.setItem('society_users', JSON.stringify(users)); }, [users]);
   useEffect(() => { localStorage.setItem('society_staff', JSON.stringify(staff)); }, [staff]);
   useEffect(() => { localStorage.setItem('society_profile', JSON.stringify(society)); }, [society]);
