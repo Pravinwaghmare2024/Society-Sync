@@ -17,6 +17,67 @@ const Maintenance: React.FC<MaintenanceProps> = ({ role, records, onPay }) => {
     return r.status === filter;
   });
 
+  const downloadReceipt = (record: MaintenanceRecord) => {
+    const societyName = "Grand View Residency";
+    const receiptHtml = `
+      <html>
+        <head>
+          <title>Maintenance Receipt - ${record.id}</title>
+          <style>
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
+            .receipt-container { max-width: 600px; margin: auto; border: 2px solid #f1f5f9; padding: 40px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+            .header { text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 30px; }
+            .society-name { font-size: 24px; font-weight: 800; color: #4f46e5; margin: 0; }
+            .receipt-title { text-transform: uppercase; letter-spacing: 2px; font-size: 12px; font-weight: 700; color: #94a3b8; margin-top: 5px; }
+            .details { margin-bottom: 30px; }
+            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px border-slate-50; }
+            .label { font-weight: 600; color: #64748b; }
+            .value { font-weight: 800; color: #1e293b; }
+            .amount-section { background: #f8fafc; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px; }
+            .amount-label { font-size: 14px; color: #64748b; font-weight: 600; }
+            .amount-value { font-size: 32px; font-weight: 900; color: #1e293b; }
+            .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9; pt: 20px; }
+            .stamp { width: 100px; height: 100px; border: 4px solid #10b981; border-radius: 50%; display: flex; items-center: center; justify-content: center; font-weight: 900; color: #10b981; text-transform: uppercase; transform: rotate(-15deg); margin: 20px auto; opacity: 0.6; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-container">
+            <div class="header">
+              <h1 class="society-name">${societyName}</h1>
+              <div class="receipt-title">Official Payment Receipt</div>
+            </div>
+            <div class="details">
+              <div class="detail-row"><span class="label">Receipt No:</span> <span class="value">REC-${record.id.toUpperCase()}</span></div>
+              <div class="detail-row"><span class="label">Unit Number:</span> <span class="value">${record.unit}</span></div>
+              <div class="detail-row"><span class="label">Billing Month:</span> <span class="value">${record.month} 2023</span></div>
+              <div class="detail-row"><span class="label">Payment Date:</span> <span class="value">${record.paidDate || 'N/A'}</span></div>
+            </div>
+            <div class="amount-section">
+              <div class="amount-label">Amount Paid</div>
+              <div class="amount-value">₹${record.amount.toLocaleString()}</div>
+            </div>
+            <div class="stamp">PAID</div>
+            <div class="footer">
+              <p>Thank you for your timely payment. This is a computer-generated receipt and does not require a physical signature.</p>
+              <p>&copy; 2023 ${societyName} Management</p>
+            </div>
+          </div>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob([receiptHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Receipt_${record.unit}_${record.month}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -80,8 +141,11 @@ const Maintenance: React.FC<MaintenanceProps> = ({ role, records, onPay }) => {
                       </button>
                     )}
                     {record.status === 'PAID' && (
-                      <button className="text-indigo-600 text-sm font-bold flex items-center gap-1 hover:underline">
-                        <span>📄</span> Receipt
+                      <button 
+                        onClick={() => downloadReceipt(record)}
+                        className="text-indigo-600 text-sm font-bold flex items-center gap-1 hover:underline group"
+                      >
+                        <span className="group-hover:scale-110 transition-transform">📄</span> Receipt
                       </button>
                     )}
                   </td>

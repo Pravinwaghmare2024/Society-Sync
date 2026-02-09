@@ -1,9 +1,9 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export async function analyzeComplaint(description: string) {
+  // Fix: Create instance right before making an API call to ensure latest key
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -17,11 +17,14 @@ export async function analyzeComplaint(description: string) {
             summary: { type: Type.STRING, description: 'A one-sentence summary of the issue.' },
           },
           required: ["priority", "summary"],
+          propertyOrdering: ["priority", "summary"],
         },
       },
     });
 
-    const result = JSON.parse(response.text);
+    // Fix: Use response.text directly and trim
+    const jsonStr = response.text?.trim() || "{}";
+    const result = JSON.parse(jsonStr);
     return result;
   } catch (error) {
     console.error("AI Analysis failed:", error);
@@ -30,12 +33,15 @@ export async function analyzeComplaint(description: string) {
 }
 
 export async function generateNoticeContent(topic: string) {
+  // Fix: Create instance right before making an API call
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Write a professional and polite notice for a housing society about: "${topic}". Include a clear heading and specific instructions.`,
     });
-    return response.text;
+    // Fix: Use response.text directly
+    return response.text || "Failed to generate content. Please write manually.";
   } catch (error) {
     console.error("AI Generation failed:", error);
     return "Failed to generate content. Please write manually.";
