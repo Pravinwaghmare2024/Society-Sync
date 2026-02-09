@@ -12,6 +12,16 @@ export enum StaffRole {
   GARDENING = 'Gardening'
 }
 
+export type DatabaseMode = 'LOCAL_STORAGE' | 'PRODUCTION_REST_API' | 'FIREBASE_REALTIME';
+
+export interface SystemConfig {
+  dbMode: DatabaseMode;
+  apiEndpoint: string;
+  authToken: string;
+  isMaintenanceMode: boolean;
+  version: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -25,7 +35,7 @@ export interface StaffMember {
   name: string;
   phone: string;
   role: StaffRole;
-  allocatedFloors: number[]; // e.g. [1, 2, 3]
+  allocatedFloors: number[];
   availability: string;
 }
 
@@ -60,4 +70,14 @@ export interface Complaint {
   createdAt: string;
   aiPriority?: string;
   aiSummary?: string;
+}
+
+export interface SocietySettings {
+  name: string;
+  address: string;
+  registrationNo: string;
+  gstNumber: string;
+  baseMaintenance: number;
+  lateFeePercent: number;
+  billingDay: number;
 }
