@@ -2,8 +2,24 @@
 import { User, UserRole, MaintenanceRecord, Notice, Complaint, StaffMember, StaffRole } from './types';
 
 export const MOCK_USERS: User[] = [
-  { id: 'u1', name: 'John Doe', unit: 'A-101', role: UserRole.RESIDENT, email: 'john@example.com' },
-  { id: 'u2', name: 'Admin Jane', unit: 'Office', role: UserRole.ADMIN, email: 'admin@society.com' },
+  { 
+    id: 'u1', 
+    name: 'John Doe', 
+    username: 'john', 
+    password: 'password123', 
+    unit: 'A-101', 
+    role: UserRole.RESIDENT, 
+    email: 'john@example.com' 
+  },
+  { 
+    id: 'u2', 
+    name: 'Admin Jane', 
+    username: 'admin', 
+    password: 'admin123', 
+    unit: 'Office', 
+    role: UserRole.ADMIN, 
+    email: 'admin@society.com' 
+  },
 ];
 
 export const MOCK_STAFF: StaffMember[] = [

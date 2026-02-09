@@ -14,17 +14,37 @@ export enum StaffRole {
 
 export type DatabaseMode = 'LOCAL_STORAGE' | 'PRODUCTION_REST_API' | 'FIREBASE_REALTIME';
 
+export interface WebServerConfig {
+  basePath: string;
+  staticCacheMaxAge: number;
+  enableGzip: boolean;
+  enableCsp: boolean;
+  hstsMaxAge: number;
+}
+
+export interface SmtpConfig {
+  host: string;
+  port: number;
+  user: string;
+  secure: boolean;
+  senderName: string;
+}
+
 export interface SystemConfig {
   dbMode: DatabaseMode;
   apiEndpoint: string;
   authToken: string;
   isMaintenanceMode: boolean;
   version: string;
+  webServer: WebServerConfig;
+  smtp: SmtpConfig;
 }
 
 export interface User {
   id: string;
   name: string;
+  username: string;
+  password?: string;
   unit: string;
   role: UserRole;
   email: string;
