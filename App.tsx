@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, MaintenanceRecord, Notice, Complaint, StaffMember } from './types.ts';
 import { MOCK_USERS, MOCK_MAINTENANCE, MOCK_NOTICES, MOCK_COMPLAINTS, MOCK_STAFF } from './constants.tsx';
@@ -82,6 +81,18 @@ const App: React.FC = () => {
     setStaff(prev => prev.filter(s => s.id !== id));
   };
 
+  const handleAddStaff = (member: Partial<StaffMember>) => {
+    const newStaff: StaffMember = {
+      id: Date.now().toString(),
+      name: member.name || 'Unknown',
+      phone: member.phone || '',
+      role: member.role as any,
+      allocatedFloors: member.allocatedFloors || [],
+      availability: member.availability || 'Not Specified'
+    };
+    setStaff(prev => [newStaff, ...prev]);
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -131,7 +142,7 @@ const App: React.FC = () => {
       case 'complaints':
         return <Complaints role={user.role} complaints={user.role === UserRole.ADMIN ? complaints : complaints.filter(c => c.residentId === user.id)} addComplaint={addComplaint} updateStatus={updateComplaintStatus} />;
       case 'staff':
-        return <Staff role={user.role} staff={staff} userUnit={user.unit} deleteStaff={handleDeleteStaff} />;
+        return <Staff role={user.role} staff={staff} userUnit={user.unit} addStaff={handleAddStaff} deleteStaff={handleDeleteStaff} />;
       default:
         return <Dashboard role={user.role} maintenance={maintenance} complaints={complaints} notices={notices} />;
     }
