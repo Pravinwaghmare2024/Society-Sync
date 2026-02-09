@@ -3,44 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="SocietySync - The smarter way to manage your housing society. Maintenance, notices, and complaints powered by AI.">
     <title>SocietySync | Smart Society Management</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <script>
-      // Shim for process.env - Critical for Gemini SDK to function
-      // If hosting on IIS, replace the empty string below with your Gemini API Key
       window.process = {
         env: {
-          API_KEY: "" 
+          API_KEY: "" // Replace with your key for production use
         }
       };
     </script>
 
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-            margin: 0;
-            -webkit-font-smoothing: antialiased;
-        }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; }
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-in {
-          animation: fadeIn 0.4s ease-out forwards;
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeIn 0.4s ease-out forwards; }
     </style>
 
     <script type="importmap">
@@ -60,6 +41,7 @@
 </head>
 <body>
     <div id="root"></div>
+    <!-- Babel will fetch and transpile the consolidated index.tsx -->
     <script type="text/babel" data-type="module" src="index.tsx"></script>
 </body>
 </html>
