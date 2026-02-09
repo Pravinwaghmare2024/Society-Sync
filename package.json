@@ -1,30 +1,48 @@
-
 {
-  "name": "societysync-web",
+  "name": "societysync-desktop",
   "version": "1.0.0",
-  "description": "Modern Web-based Housing Society Management Platform",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "keywords": [
-    "real-estate",
-    "management",
-    "react",
-    "gemini-ai"
-  ],
+  "description": "Smart Housing Society Management Desktop Application",
+  "main": "main.js",
   "author": "SocietySync Team",
   "license": "MIT",
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "electron:start": "electron .",
+    "electron:build": "electron-builder build --windows"
+  },
+  "build": {
+    "appId": "com.societysync.app",
+    "productName": "SocietySync",
+    "copyright": "Copyright © 2024 SocietySync",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "SocietySync"
+    },
+    "files": [
+      "**/*",
+      "!dist_electron/*"
+    ]
+  },
   "dependencies": {
     "@google/genai": "^1.37.0",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "recharts": "^3.6.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^2.15.0"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.0",
-    "autoprefixer": "^10.4.17",
-    "postcss": "^8.4.35"
+    "electron": "^33.0.0",
+    "electron-builder": "^24.13.3",
+    "vite": "^6.0.0"
   }
 }
