@@ -9,11 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <script>
-      // Force process.env for Babel-transpiled code
-      window.process = {
-        env: {
-          API_KEY: "" 
-        }
+      // Initialize environment shim
+      window.process = { env: { API_KEY: "" } };
+      // Configuration to prevent Babel from triggering tracking prevention storage blocks
+      window.BabelConfig = {
+        presets: ["react"],
+        sourceMaps: false
       };
     </script>
 
@@ -40,15 +41,15 @@
 }
 </script>
     
-    <!-- Using cdnjs for Babel as it is often less aggressive with storage/tracking blocks -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.2/babel.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Babel from cdnjs is typically more compatible with browser security settings -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.2/babel.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
     <div id="root"></div>
     <!-- 
-      The 'data-type="module"' attribute tells Babel to treat this as an ES module, 
-      which allows the 'import' statements inside index.tsx to work with the importmap.
+      Using a single entry point file 'index.tsx' containing the entire app 
+      prevents IIS from failing on relative module imports.
     -->
-    <script type="text/babel" data-type="module" data-presets="react" src="index.tsx" crossorigin="anonymous"></script>
+    <script type="text/babel" data-type="module" src="index.tsx" crossorigin="anonymous"></script>
 </body>
 </html>
