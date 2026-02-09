@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, MaintenanceRecord, Notice, Complaint } from './types.ts';
-import { MOCK_USERS, MOCK_MAINTENANCE, MOCK_NOTICES, MOCK_COMPLAINTS } from './constants.tsx';
+import { User, UserRole, MaintenanceRecord, Notice, Complaint, StaffMember } from './types.ts';
+import { MOCK_USERS, MOCK_MAINTENANCE, MOCK_NOTICES, MOCK_COMPLAINTS, MOCK_STAFF } from './constants.tsx';
 import Sidebar from './components/Sidebar.tsx';
 import Dashboard from './components/Dashboard.tsx';
 import Maintenance from './components/Maintenance.tsx';
 import Notices from './components/Notices.tsx';
 import Complaints from './components/Complaints.tsx';
+import Staff from './components/Staff.tsx';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -14,6 +15,7 @@ const App: React.FC = () => {
   const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>(MOCK_MAINTENANCE);
   const [notices, setNotices] = useState<Notice[]>(MOCK_NOTICES);
   const [complaints, setComplaints] = useState<Complaint[]>(MOCK_COMPLAINTS);
+  const [staff, setStaff] = useState<StaffMember[]>(MOCK_STAFF);
   const [loginEmail, setLoginEmail] = useState('');
 
   useEffect(() => {
@@ -76,6 +78,10 @@ const App: React.FC = () => {
     alert("Payment Successful! Receipt generated.");
   };
 
+  const handleDeleteStaff = (id: string) => {
+    setStaff(prev => prev.filter(s => s.id !== id));
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -124,6 +130,8 @@ const App: React.FC = () => {
         return <Notices role={user.role} notices={notices} addNotice={addNotice} />;
       case 'complaints':
         return <Complaints role={user.role} complaints={user.role === UserRole.ADMIN ? complaints : complaints.filter(c => c.residentId === user.id)} addComplaint={addComplaint} updateStatus={updateComplaintStatus} />;
+      case 'staff':
+        return <Staff role={user.role} staff={staff} userUnit={user.unit} deleteStaff={handleDeleteStaff} />;
       default:
         return <Dashboard role={user.role} maintenance={maintenance} complaints={complaints} notices={notices} />;
     }

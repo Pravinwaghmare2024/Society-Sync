@@ -1,10 +1,9 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { GoogleGenAI, Type } from "@google/genai";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, Cell, PieChart, Pie
+  ResponsiveContainer, Cell, PieChart, Pie, Legend
 } from 'recharts';
 
 // --- TYPES & INTERFACES ---
@@ -25,6 +24,22 @@ enum ComplianceStatus {
   EXPIRED = 'EXPIRED'
 }
 
+enum StaffRole {
+  CLEANING = 'CLEANING',
+  PLUMBING = 'PLUMBING',
+  ELECTRICAL = 'ELECTRICAL',
+  SECURITY = 'SECURITY'
+}
+
+interface StaffMember {
+  id: string;
+  name: string;
+  phone: string;
+  role: StaffRole;
+  allocatedFloors: number[];
+  availability: string;
+}
+
 interface EmergencyContact {
   id: string;
   role: string;
@@ -35,7 +50,7 @@ interface EmergencyContact {
 interface SocietyConfig {
   name: string;
   address: string;
-  maintenanceRate: number; // Rate per SqFt
+  maintenanceRate: number; 
   lateFee: number;
   currency: string;
   totalBlocks: number;
@@ -43,6 +58,7 @@ interface SocietyConfig {
   gymTimings: string;
   clubhouseRules: string;
   emergencyContacts: EmergencyContact[];
+  requirePoliceVerification: boolean;
 }
 
 interface User {
@@ -104,7 +120,8 @@ const DEFAULT_CONFIG: SocietyConfig = {
   emergencyContacts: [
     { id: '1', role: 'Security Head', name: 'Commander Roy', phone: '+91 98765 43210' },
     { id: '2', role: 'Plumber', name: 'Ramesh Singh', phone: '+91 98234 56789' }
-  ]
+  ],
+  requirePoliceVerification: true
 };
 
 const MOCK_USERS: User[] = [
@@ -114,45 +131,13 @@ const MOCK_USERS: User[] = [
   { id: 'u4', name: 'Super Manager', unit: 'HQ', role: UserRole.SUPER_ADMIN, email: 'super@system.com', occupancyType: OccupancyType.OWNED, policeVerification: ComplianceStatus.VERIFIED, areaOwned: 0, parkingSlot: 'NA' },
 ];
 
-// --- AI SERVICES ---
-const analyzeComplaintAI = async (description: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Analyze the following housing society complaint and provide a priority (Urgent, Medium, Low) and a short summary: "${description}"`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            priority: { type: Type.STRING, description: 'Urgent, Medium, or Low' },
-            summary: { type: Type.STRING, description: 'A one-sentence summary of the issue.' },
-          },
-          required: ["priority", "summary"],
-        },
-      },
-    });
-    return JSON.parse(response.text || "{}");
-  } catch (error) {
-    console.error("AI Analysis failed:", error);
-    return { priority: 'Medium', summary: description.substring(0, 50) + '...' };
-  }
-};
-
-const generateNoticeAI = async (topic: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Write a professional and polite notice for a housing society about: "${topic}". Include a clear heading and specific instructions.`,
-    });
-    return response.text || "Draft failed to generate.";
-  } catch (error) {
-    console.error("AI Generation failed:", error);
-    return "Generation error.";
-  }
-};
+const MOCK_STAFF: StaffMember[] = [
+  { id: 's1', name: 'Ramesh Kumar', role: StaffRole.CLEANING, phone: '+91 98765 11111', allocatedFloors: [1, 2, 3], availability: '08:00 AM - 04:00 PM' },
+  { id: 's2', name: 'Suresh Singh', role: StaffRole.CLEANING, phone: '+91 98765 22222', allocatedFloors: [4, 5, 6], availability: '08:00 AM - 04:00 PM' },
+  { id: 's3', name: 'Sunita Devi', role: StaffRole.CLEANING, phone: '+91 98765 33333', allocatedFloors: [7, 8, 9, 10], availability: '09:00 AM - 05:00 PM' },
+  { id: 's4', name: 'Vijay Electrician', role: StaffRole.ELECTRICAL, phone: '+91 98765 44444', allocatedFloors: [], availability: '24/7 (On Call)' },
+  { id: 's5', name: 'Arjun Plumber', role: StaffRole.PLUMBING, phone: '+91 98765 55555', allocatedFloors: [], availability: '10:00 AM - 06:00 PM' },
+];
 
 // --- SUB-COMPONENTS ---
 
@@ -163,6 +148,7 @@ const Sidebar = ({ user, activeTab, setActiveTab, onLogout }: any) => {
     { id: 'maintenance', label: 'Finance', icon: '💰', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RESIDENT] },
     { id: 'notices', label: 'Notice Board', icon: '📢', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RESIDENT] },
     { id: 'complaints', label: 'Complaints', icon: '🛠️', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RESIDENT] },
+    { id: 'staff', label: 'Staff Directory', icon: '👷', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.RESIDENT] },
     { id: 'setup', label: 'System Setup', icon: '⚙️', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
   ];
 
@@ -206,16 +192,385 @@ const Sidebar = ({ user, activeTab, setActiveTab, onLogout }: any) => {
   );
 };
 
+const SetupView = ({ config, setConfig, onBackup, onRestore, onReset }: { 
+  config: SocietyConfig, 
+  setConfig: (c: SocietyConfig) => void,
+  onBackup: () => void,
+  onRestore: (e: React.ChangeEvent<HTMLInputElement>) => void,
+  onReset: () => void
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="space-y-12 animate-in slide-in-from-bottom-6 duration-500">
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tighter">System Console</h2>
+          <p className="text-slate-500 font-medium">Global configuration, building structure, and database management.</p>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onBackup} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all flex items-center gap-2">
+            📥 BACKUP DATA
+          </button>
+          <button onClick={() => fileInputRef.current?.click()} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all flex items-center gap-2">
+            📤 RESTORE
+          </button>
+          <input ref={fileInputRef} type="file" accept=".json" onChange={onRestore} className="hidden" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
+        <div className="xl:col-span-2 space-y-10">
+          <section className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/20">
+            <h3 className="text-xl font-black text-slate-900 mb-8 border-b border-slate-50 pb-4">Society Identity</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Legal Society Name</label>
+                <input type="text" value={config.name} onChange={e => setConfig({...config, name: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 focus:border-indigo-600 rounded-2xl px-6 py-4 font-bold outline-none transition-all" />
+              </div>
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Registered Address</label>
+                <textarea rows={2} value={config.address} onChange={e => setConfig({...config, address: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 focus:border-indigo-600 rounded-2xl px-6 py-4 font-bold outline-none transition-all resize-none" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Currency Symbol</label>
+                <input type="text" value={config.currency} onChange={e => setConfig({...config, currency: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 focus:border-indigo-600 rounded-2xl px-6 py-4 font-bold outline-none transition-all" />
+              </div>
+              <div className="flex items-center gap-4 bg-slate-50 p-6 rounded-3xl">
+                <input type="checkbox" checked={config.requirePoliceVerification} onChange={e => setConfig({...config, requirePoliceVerification: e.target.checked})} className="w-6 h-6 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300" />
+                <div>
+                  <p className="text-xs font-black text-slate-900">Police Verification Mandatory</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">For all rented units</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/20">
+            <h3 className="text-xl font-black text-slate-900 mb-8 border-b border-slate-50 pb-4">Building Topology</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Blocks / Wings</label>
+                <input type="number" value={config.totalBlocks} onChange={e => setConfig({...config, totalBlocks: parseInt(e.target.value)})} className="w-full bg-slate-50 border-2 border-slate-50 focus:border-indigo-600 rounded-2xl px-6 py-4 font-bold outline-none transition-all" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Max Floors per Block</label>
+                <input type="number" value={config.totalFloors} onChange={e => setConfig({...config, totalFloors: parseInt(e.target.value)})} className="w-full bg-slate-50 border-2 border-slate-50 focus:border-indigo-600 rounded-2xl px-6 py-4 font-bold outline-none transition-all" />
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/20">
+            <h3 className="text-xl font-black text-slate-900 mb-8 border-b border-slate-50 pb-4">Financial Policy</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Maintenance Rate (per SqFt)</label>
+                <input type="number" step="0.1" value={config.maintenanceRate} onChange={e => setConfig({...config, maintenanceRate: parseFloat(e.target.value)})} className="w-full bg-slate-50 border-2 border-slate-50 focus:border-indigo-600 rounded-2xl px-6 py-4 font-bold outline-none transition-all" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Late Payment Penalty</label>
+                <input type="number" value={config.lateFee} onChange={e => setConfig({...config, lateFee: parseInt(e.target.value)})} className="w-full bg-slate-50 border-2 border-slate-50 focus:border-indigo-600 rounded-2xl px-6 py-4 font-bold outline-none transition-all" />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div className="space-y-10">
+          <div className="bg-rose-500 text-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden">
+            <h3 className="text-xl font-black mb-6 relative z-10">Danger Zone</h3>
+            <p className="text-rose-100 text-sm mb-8 relative z-10 font-medium">Resetting the system will clear all current records, complaints, and configurations from your browser's local storage.</p>
+            <button onClick={onReset} className="w-full bg-white text-rose-600 py-4 rounded-2xl font-black text-sm shadow-xl hover:bg-rose-50 transition-all relative z-10">
+              FACTORY RESET SYSTEM
+            </button>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-rose-400 rounded-full blur-[100px] opacity-30 -translate-y-1/2 translate-x-1/3"></div>
+          </div>
+
+          <div className="bg-indigo-600 text-white p-10 rounded-[3rem] shadow-2xl">
+            <h3 className="text-xl font-black mb-6">Database Health</h3>
+            <div className="space-y-6">
+              <div className="flex justify-between items-center py-3 border-b border-indigo-500/30">
+                <span className="text-[10px] font-black uppercase opacity-70">Records Active</span>
+                <span className="font-black">1,248</span>
+              </div>
+              <div className="flex justify-between items-center py-3 border-b border-indigo-500/30">
+                <span className="text-[10px] font-black uppercase opacity-70">Last Sync</span>
+                <span className="font-black">2 mins ago</span>
+              </div>
+              <div className="flex justify-between items-center py-3">
+                <span className="text-[10px] font-black uppercase opacity-70">Integrity</span>
+                <span className="font-black text-emerald-300">SECURE</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const UnitsView = ({ users }: { users: User[] }) => {
+  const pieData = useMemo(() => {
+    const owned = users.filter(u => u.occupancyType === OccupancyType.OWNED).length;
+    const rented = users.filter(u => u.occupancyType === OccupancyType.RENTED).length;
+    return [
+      { name: 'Owned', value: owned, fill: '#6366f1' },
+      { name: 'Rented', value: rented, fill: '#f43f5e' }
+    ];
+  }, [users]);
+
+  return (
+    <div className="space-y-10 animate-in">
+      <h2 className="text-3xl font-black text-slate-900 tracking-tight">Units & Compliance</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1 bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl flex flex-col items-center">
+          <h3 className="text-lg font-bold text-slate-900 mb-6">Occupancy Distribution</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={pieData} dataKey="value" innerRadius={60} outerRadius={80} paddingAngle={5} />
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="lg:col-span-2 bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+              <tr>
+                <th className="px-8 py-6">Resident</th>
+                <th className="px-8 py-6">Unit</th>
+                <th className="px-8 py-6">Type</th>
+                <th className="px-8 py-6">Compliance</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {users.map(u => (
+                <tr key={u.id} className="hover:bg-slate-50/50 transition-all">
+                  <td className="px-8 py-6 font-bold text-slate-900">{u.name}</td>
+                  <td className="px-8 py-6 text-slate-500 font-bold">{u.unit}</td>
+                  <td className="px-8 py-6 font-black text-xs">
+                    <span className={u.occupancyType === OccupancyType.OWNED ? 'text-indigo-600' : 'text-rose-600'}>
+                      {u.occupancyType}
+                    </span>
+                  </td>
+                  <td className="px-8 py-6">
+                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${
+                      u.policeVerification === ComplianceStatus.VERIFIED ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                    }`}>
+                      {u.policeVerification}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StaffView = ({ staff, user, onAddStaff }: { staff: StaffMember[], user: User, onAddStaff: (s: StaffMember) => void }) => {
+  const [filter, setFilter] = useState('ALL');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+  
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newRole, setNewRole] = useState(StaffRole.CLEANING);
+  const [newAvailability, setNewAvailability] = useState('09:00 AM - 05:00 PM');
+  const [newFloors, setNewFloors] = useState('');
+
+  const floorNum = parseInt(user.unit.split('-')[1]?.substring(0, 1)) || 0;
+
+  const filteredStaff = staff.filter(s => {
+    if (filter === 'ALL') return true;
+    return s.role === filter;
+  });
+
+  const handleAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const floorsArray = newFloors.split(',').map(f => parseInt(f.trim())).filter(f => !isNaN(f));
+    const newStaff: StaffMember = {
+      id: Date.now().toString(),
+      name: newName,
+      phone: newPhone,
+      role: newRole,
+      availability: newAvailability,
+      allocatedFloors: floorsArray
+    };
+    onAddStaff(newStaff);
+    setShowAddModal(false);
+    setNewName('');
+    setNewPhone('');
+    setNewFloors('');
+  };
+
+  return (
+    <div className="space-y-10 animate-in">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Staff Directory</h2>
+          <p className="text-slate-500 font-medium">Manage and contact your society's maintenance workforce.</p>
+        </div>
+        <div className="flex gap-4 items-center">
+          <div className="hidden md:flex gap-2 p-1 bg-slate-100 rounded-2xl">
+            {['ALL', 'CLEANING', 'PLUMBING', 'ELECTRICAL'].map(f => (
+              <button key={f} onClick={() => setFilter(f)} className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === f ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+                {f}
+              </button>
+            ))}
+          </div>
+          {isAdmin && (
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center gap-2"
+            >
+              <span>➕</span> ADD STAFF
+            </button>
+          )}
+        </div>
+      </div>
+
+      {user.role === UserRole.RESIDENT && floorNum > 0 && (
+        <div className="bg-indigo-600 p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
+          <h3 className="text-xl font-black mb-4 flex items-center gap-2">
+            ✨ Maintenance Team For Your Floor ({floorNum})
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
+            {staff.filter(s => s.role === StaffRole.CLEANING && s.allocatedFloors.includes(floorNum)).map(s => (
+              <div key={s.id} className="bg-white/10 backdrop-blur-md p-6 rounded-[2rem] border border-white/20 flex justify-between items-center group">
+                <div>
+                  <p className="font-black text-lg">{s.name}</p>
+                  <p className="text-xs text-indigo-200 font-bold uppercase tracking-wider">Assigned Cleaner • {s.availability}</p>
+                </div>
+                <a href={`tel:${s.phone}`} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-xl hover:scale-110 transition-transform">
+                  📞
+                </a>
+              </div>
+            ))}
+          </div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-400 rounded-full blur-[100px] opacity-20 -translate-y-1/2 translate-x-1/2"></div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {filteredStaff.map(s => (
+          <div key={s.id} className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/20 group hover:-translate-y-1 transition-all">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                {s.role === StaffRole.CLEANING ? '🧹' : s.role === StaffRole.ELECTRICAL ? '⚡' : s.role === StaffRole.PLUMBING ? '🔧' : '👤'}
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight">{s.name}</h3>
+                <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-lg uppercase tracking-widest">{s.role}</span>
+              </div>
+            </div>
+            <div className="space-y-4 mb-8">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</span>
+                <span className="font-bold text-slate-900">{s.phone}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Shift</span>
+                <span className="font-bold text-slate-600">{s.availability}</span>
+              </div>
+              {s.role === StaffRole.CLEANING && (
+                <div className="pt-2 border-t border-slate-50">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Floors Covered</span>
+                  <div className="flex flex-wrap gap-2">
+                    {s.allocatedFloors.length > 0 ? s.allocatedFloors.map(f => (
+                      <span key={f} className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black">Floor {f}</span>
+                    )) : <span className="text-[10px] font-bold text-slate-300">No floors assigned</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+            <a href={`tel:${s.phone}`} className="block w-full text-center bg-slate-900 text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-colors">
+              CONTACT STAFF
+            </a>
+          </div>
+        ))}
+      </div>
+
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-6">
+          <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-10">
+              <div className="flex justify-between items-center mb-10">
+                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Add Maintenance Staff</h3>
+                <button onClick={() => setShowAddModal(false)} className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all text-xl">✕</button>
+              </div>
+
+              <form onSubmit={handleAddSubmit} className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Full Name</label>
+                    <input required type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Raju Kumar" className="w-full bg-slate-50 border-2 border-slate-50 focus:border-indigo-600 rounded-2xl px-6 py-4 font-bold outline-none transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Phone Number</label>
+                    <input required type="tel" value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="e.g. +91 99999 88888" className="w-full bg-slate-50 border-2 border-slate-50 focus:border-indigo-600 rounded-2xl px-6 py-4 font-bold outline-none transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Professional Role</label>
+                    <select value={newRole} onChange={e => setNewRole(e.target.value as StaffRole)} className="w-full bg-slate-50 border-2 border-slate-50 focus:border-indigo-600 rounded-2xl px-6 py-4 font-bold outline-none transition-all appearance-none">
+                      <option value={StaffRole.CLEANING}>Cleaning Staff</option>
+                      <option value={StaffRole.PLUMBING}>Plumbing</option>
+                      <option value={StaffRole.ELECTRICAL}>Electrical</option>
+                      <option value={StaffRole.SECURITY}>Security</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Working Shift</label>
+                    <input required type="text" value={newAvailability} onChange={e => setNewAvailability(e.target.value)} placeholder="e.g. 08 AM - 04 PM" className="w-full bg-slate-50 border-2 border-slate-50 focus:border-indigo-600 rounded-2xl px-6 py-4 font-bold outline-none transition-all" />
+                  </div>
+                </div>
+
+                {newRole === StaffRole.CLEANING && (
+                  <div className="bg-indigo-50/50 p-8 rounded-[2rem] border border-indigo-100/50">
+                    <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">Floor Allocations (Optional)</label>
+                    <input type="text" value={newFloors} onChange={e => setNewFloors(e.target.value)} placeholder="e.g. 1, 2, 3 (Comma separated floor numbers)" className="w-full bg-white border-2 border-transparent focus:border-indigo-600 rounded-2xl px-6 py-4 font-bold outline-none transition-all" />
+                    <p className="mt-3 text-[10px] text-indigo-300 font-bold uppercase tracking-wider">Assign specific floors to this cleaner for resident transparency.</p>
+                  </div>
+                )}
+
+                <div className="pt-6">
+                  <button type="submit" className="w-full bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-lg shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 active:scale-[0.98] transition-all">
+                    CONFIRM & REGISTER STAFF
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Dashboard = ({ config, maintenance, complaints, notices, user }: any) => {
   const chartData = [
     { n: 'Sep', a: 2500 }, { n: 'Oct', a: 3200 }, { n: 'Nov', a: 4100 }, { n: 'Dec', a: 3800 }
   ];
 
+  const isAdmin = user.role !== UserRole.RESIDENT;
+
+  // STRICT FILTERING FOR RESIDENTS
+  const filteredMaintenance = isAdmin 
+    ? maintenance 
+    : maintenance.filter((m: MaintenanceRecord) => m.unit === user.unit);
+  
+  const filteredComplaints = isAdmin 
+    ? complaints 
+    : complaints.filter((c: Complaint) => c.unit === user.unit);
+
   const stats = [
-    { label: 'Unpaid Bills', value: maintenance.filter((m: any) => m.status !== 'PAID').length, icon: '💸', color: 'bg-rose-50 text-rose-600' },
-    { label: 'Pending Complaints', value: complaints.filter((c: any) => c.status !== 'RESOLVED').length, icon: '🛠️', color: 'bg-amber-50 text-amber-600' },
+    { label: isAdmin ? 'Unpaid Bills' : 'My Unpaid Bills', value: filteredMaintenance.filter((m: MaintenanceRecord) => m.status !== 'PAID').length, icon: '💸', color: 'bg-rose-50 text-rose-600' },
+    { label: isAdmin ? 'Pending Complaints' : 'My Active Issues', value: filteredComplaints.filter((c: Complaint) => c.status !== 'RESOLVED').length, icon: '🛠️', color: 'bg-amber-50 text-amber-600' },
     { label: 'Active Notices', value: notices.length, icon: '📢', color: 'bg-indigo-50 text-indigo-600' },
-    { label: 'Total Managed Area', value: '54,200', icon: '📐', color: 'bg-emerald-50 text-emerald-600' },
+    { label: isAdmin ? 'Total Units' : 'My Allotted Area', value: isAdmin ? '120' : `${user.areaOwned} SqFt`, icon: '🏢', color: 'bg-emerald-50 text-emerald-600' },
   ];
 
   return (
@@ -243,7 +598,7 @@ const Dashboard = ({ config, maintenance, complaints, notices, user }: any) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 bg-white p-12 rounded-[4rem] border border-slate-100 shadow-2xl">
-          <h3 className="text-2xl font-black mb-10 tracking-tight text-slate-900">Financial Insights</h3>
+          <h3 className="text-2xl font-black mb-10 tracking-tight text-slate-900">{isAdmin ? 'Financial Insights' : 'My Payment History'}</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
@@ -276,183 +631,7 @@ const Dashboard = ({ config, maintenance, complaints, notices, user }: any) => {
   );
 };
 
-const Maintenance = ({ records, onPay, config }: any) => {
-  const downloadReceipt = (record: MaintenanceRecord) => {
-    const receiptHtml = `
-      <html>
-        <head>
-          <title>Maintenance Receipt - ${record.id}</title>
-          <style>
-            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
-            .receipt-container { max-width: 600px; margin: auto; border: 2px solid #f1f5f9; padding: 40px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-            .header { text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 30px; }
-            .society-name { font-size: 24px; font-weight: 800; color: #4f46e5; margin: 0; }
-            .receipt-title { text-transform: uppercase; letter-spacing: 2px; font-size: 12px; font-weight: 700; color: #94a3b8; margin-top: 5px; }
-            .details { margin-bottom: 30px; }
-            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
-            .label { font-weight: 600; color: #64748b; }
-            .value { font-weight: 800; color: #1e293b; }
-            .amount-section { background: #f8fafc; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px; }
-            .amount-value { font-size: 32px; font-weight: 900; color: #1e293b; }
-            .stamp { width: 100px; height: 100px; border: 4px solid #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #10b981; text-transform: uppercase; transform: rotate(-15deg); margin: 20px auto; opacity: 0.6; }
-          </style>
-        </head>
-        <body>
-          <div class="receipt-container">
-            <div class="header">
-              <h1 class="society-name">${config.name}</h1>
-              <div class="receipt-title">Official Maintenance Receipt</div>
-            </div>
-            <div class="details">
-              <div class="detail-row"><span class="label">Receipt No:</span> <span class="value">REC-${record.id.toUpperCase()}</span></div>
-              <div class="detail-row"><span class="label">Unit Number:</span> <span class="value">${record.unit}</span></div>
-              <div class="detail-row"><span class="label">Billing Month:</span> <span class="value">${record.month} 2023</span></div>
-              <div class="detail-row"><span class="label">Payment Date:</span> <span class="value">${record.paidDate || 'N/A'}</span></div>
-            </div>
-            <div class="amount-section"><div class="amount-value">${config.currency}${record.amount.toLocaleString()}</div></div>
-            <div class="stamp">PAID</div>
-          </div>
-          <script>window.print();</script>
-        </body>
-      </html>
-    `;
-    const blob = new Blob([receiptHtml], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url; link.download = `Receipt_${record.unit}_${record.month}.html`;
-    link.click();
-  };
-
-  return (
-    <div className="space-y-8 animate-in">
-      <h2 className="text-3xl font-black text-slate-900 tracking-tight">Financial Ledger</h2>
-      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden shadow-slate-200/20">
-        <table className="w-full text-left">
-          <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
-            <tr>
-              <th className="px-10 py-7">Period</th>
-              <th className="px-10 py-7">Unit</th>
-              <th className="px-10 py-7 text-right">Amount</th>
-              <th className="px-10 py-7 text-center">Status</th>
-              <th className="px-10 py-7 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {records.map((m: any) => (
-              <tr key={m.id} className="hover:bg-slate-50/50 transition-all">
-                <td className="px-10 py-7 font-black text-slate-900">{m.month} 2023</td>
-                <td className="px-10 py-7"><span className="font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-lg text-xs">{m.unit}</span></td>
-                <td className="px-10 py-7 text-right font-black text-slate-900 text-lg">{config.currency}{m.amount.toLocaleString()}</td>
-                <td className="px-10 py-7 text-center">
-                  <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase ${m.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {m.status}
-                  </span>
-                </td>
-                <td className="px-10 py-7 text-right">
-                  {m.status === 'PENDING' && <button onClick={() => onPay(m.id)} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl text-xs font-black shadow-lg shadow-indigo-600/30 hover:scale-105 transition-all">PAY NOW</button>}
-                  {m.status === 'PAID' && <button onClick={() => downloadReceipt(m)} className="text-[10px] font-black text-indigo-500 hover:underline">RECEIPT 📄</button>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
-
-const Complaints = ({ complaints, onAdd, onUpdateStatus, role }: any) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [desc, setDesc] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    setIsAnalyzing(true);
-    const analysis = await analyzeComplaintAI(desc);
-    onAdd({ description: desc, aiPriority: analysis.priority, aiSummary: analysis.summary });
-    setDesc('');
-    setIsOpen(false);
-    setIsAnalyzing(false);
-  };
-
-  return (
-    <div className="space-y-8 animate-in">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-black text-slate-900">Complaint Register</h2>
-        {role === UserRole.RESIDENT && (
-          <button onClick={() => setIsOpen(!isOpen)} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-600/30 hover:bg-indigo-700">
-            {isOpen ? 'Close Form' : 'File Complaint'}
-          </button>
-        )}
-      </div>
-
-      {isOpen && (
-        <form onSubmit={handleSubmit} className="bg-white p-12 rounded-[3rem] border border-slate-100 shadow-xl space-y-6">
-          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Describe the Issue</label>
-          <textarea value={desc} onChange={(e) => setDesc(e.target.value)} required className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-600 rounded-3xl p-6 font-bold outline-none h-40" placeholder="e.g. Water leak in A-Block lobby..." />
-          <button disabled={isAnalyzing} className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-lg disabled:opacity-50">
-            {isAnalyzing ? 'AI ANALYZING PRIORITY...' : 'SUBMIT WITH AI TRIAGE'}
-          </button>
-        </form>
-      )}
-
-      <div className="space-y-4">
-        {complaints.map((c: any) => (
-          <div key={c.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${c.status === 'RESOLVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{c.status}</span>
-                <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100">AI Priority: {c.aiPriority || 'Medium'}</span>
-              </div>
-              <p className="font-bold text-slate-900 text-lg mb-1">{c.aiSummary || c.description}</p>
-              <p className="text-sm text-slate-400 font-medium">Reported by {c.residentName} ({c.unit}) • {c.createdAt}</p>
-            </div>
-            {role !== UserRole.RESIDENT && c.status !== 'RESOLVED' && (
-              <button onClick={() => onUpdateStatus(c.id, 'RESOLVED')} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl text-xs font-black shadow-lg shadow-emerald-600/30 hover:scale-105 transition-all">MARK RESOLVED</button>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const SetupConsole = ({ config, setConfig }: { config: SocietyConfig, setConfig: (c: SocietyConfig) => void }) => {
-  const [it, setIt] = useState('general');
-  return (
-    <div className="space-y-8 animate-in">
-      <h2 className="text-4xl font-black text-slate-900 tracking-tighter">System Console</h2>
-      <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
-        {['general', 'finance', 'facilities'].map(tab => (
-          <button key={tab} onClick={() => setIt(tab)} className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${it === tab ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>{tab}</button>
-        ))}
-      </div>
-      <div className="bg-white rounded-[3rem] p-12 shadow-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-12">
-        {it === 'general' && (
-          <div className="col-span-2 space-y-6">
-            <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Society Name</label>
-              <input type="text" value={config.name} onChange={e => setConfig({...config, name: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold" />
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div><label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Blocks</label><input type="number" value={config.totalBlocks} onChange={e => setConfig({...config, totalBlocks: +e.target.value})} className="w-full bg-slate-50 rounded-2xl p-4 font-bold" /></div>
-              <div><label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Floors</label><input type="number" value={config.totalFloors} onChange={e => setConfig({...config, totalFloors: +e.target.value})} className="w-full bg-slate-50 rounded-2xl p-4 font-bold" /></div>
-            </div>
-          </div>
-        )}
-        {it === 'finance' && (
-          <div className="col-span-2 space-y-6">
-            <div><label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Maint. Rate (per sqft)</label><input type="number" value={config.maintenanceRate} onChange={e => setConfig({...config, maintenanceRate: +e.target.value})} className="w-full bg-slate-50 rounded-2xl p-4 font-bold" /></div>
-            <div><label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Currency</label><input type="text" value={config.currency} onChange={e => setConfig({...config, currency: e.target.value})} className="w-full bg-slate-50 rounded-2xl p-4 font-bold" /></div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// --- MAIN APP COMPONENT ---
+// --- APP COMPONENT ---
 
 const App = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -461,15 +640,19 @@ const App = () => {
   const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([]);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [staff, setStaff] = useState<StaffMember[]>(MOCK_STAFF);
   const [loginEmail, setLoginEmail] = useState('');
 
+  const STORAGE_KEY = 'societysync_full_v3';
+
   useEffect(() => {
-    const saved = localStorage.getItem('societysync_full_v1');
+    const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const p = JSON.parse(saved);
-      setMaintenance(p.maintenance);
-      setComplaints(p.complaints);
-      setNotices(p.notices);
+      setMaintenance(p.maintenance || []);
+      setComplaints(p.complaints || []);
+      setNotices(p.notices || []);
+      setStaff(p.staff || MOCK_STAFF);
       setConfig(p.config || DEFAULT_CONFIG);
     } else {
       setMaintenance([
@@ -483,24 +666,142 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('societysync_full_v1', JSON.stringify({ maintenance, complaints, notices, config }));
-  }, [maintenance, complaints, notices, config]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ maintenance, complaints, notices, config, staff }));
+  }, [maintenance, complaints, notices, config, staff]);
 
   const handleLogin = (e: any) => {
     e.preventDefault();
     const found = MOCK_USERS.find(u => u.email.toLowerCase() === loginEmail.toLowerCase());
-    if (found) { setUser(found); localStorage.setItem('society_active_user', JSON.stringify(found)); }
+    if (found) { setUser(found); }
     else { alert("Unauthorized access. Try demo emails: admin@society.com or john@example.com"); }
   };
 
-  const handleLogout = () => { setUser(null); localStorage.removeItem('society_active_user'); };
+  const handleLogout = () => { setUser(null); };
+
+  const handleBackup = () => {
+    const data = JSON.stringify({ maintenance, complaints, notices, config, staff }, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `SocietySync_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRestore = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const p = JSON.parse(event.target?.result as string);
+        if (p.config) setConfig(p.config);
+        if (p.staff) setStaff(p.staff);
+        if (p.maintenance) setMaintenance(p.maintenance);
+        if (p.complaints) setComplaints(p.complaints);
+        if (p.notices) setNotices(p.notices);
+        alert("System Restored Successfully!");
+      } catch (err) {
+        alert("Invalid backup file.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleReset = () => {
+    if (window.confirm("ARE YOU SURE? This will permanently wipe all society data and reset to factory defaults.")) {
+      localStorage.removeItem(STORAGE_KEY);
+      window.location.reload();
+    }
+  };
 
   const renderContent = () => {
+    if (!user) return null;
     switch (activeTab) {
       case 'dashboard': return <Dashboard config={config} maintenance={maintenance} complaints={complaints} notices={notices} user={user} />;
-      case 'maintenance': return <Maintenance records={maintenance.filter(m => user?.role !== UserRole.RESIDENT || m.unit === user.unit)} onPay={(id: any) => setMaintenance(prev => prev.map(m => m.id === id ? {...m, status: 'PAID', paidDate: new Date().toLocaleDateString()} : m))} config={config} />;
-      case 'complaints': return <Complaints complaints={user?.role === UserRole.RESIDENT ? complaints.filter(c => c.residentName === user.name) : complaints} onAdd={(c: any) => setComplaints(prev => [{...c, id: Date.now().toString(), status: 'OPEN', residentName: user?.name, unit: user?.unit, createdAt: new Date().toLocaleDateString()}, ...prev])} onUpdateStatus={(id: any, status: any) => setComplaints(prev => prev.map(c => c.id === id ? {...c, status} : c))} role={user?.role} />;
-      case 'setup': return <SetupConsole config={config} setConfig={setConfig} />;
+      case 'units': return <UnitsView users={MOCK_USERS} />;
+      case 'staff': return <StaffView staff={staff} user={user} onAddStaff={(newMember) => setStaff(prev => [newMember, ...prev])} />;
+      case 'maintenance': return (
+        <div className="space-y-10 animate-in">
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+            {user.role === UserRole.RESIDENT ? `Maintenance Ledger for ${user.unit}` : 'Society Financial Ledger'}
+          </h2>
+          <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden shadow-slate-200/20">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                <tr>
+                  <th className="px-10 py-7">Period</th>
+                  <th className="px-10 py-7">Unit</th>
+                  <th className="px-10 py-7 text-right">Amount</th>
+                  <th className="px-10 py-7 text-center">Status</th>
+                  <th className="px-10 py-7 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {maintenance
+                  .filter(m => user.role !== UserRole.RESIDENT || m.unit === user.unit)
+                  .map(m => (
+                  <tr key={m.id} className="hover:bg-slate-50/50 transition-all">
+                    <td className="px-10 py-7 font-black text-slate-900">{m.month} 2023</td>
+                    <td className="px-10 py-7"><span className="font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-lg text-xs">{m.unit}</span></td>
+                    <td className="px-10 py-7 text-right font-black text-slate-900 text-lg">{config.currency}{m.amount.toLocaleString()}</td>
+                    <td className="px-10 py-7 text-center">
+                      <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase ${m.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {m.status}
+                      </span>
+                    </td>
+                    <td className="px-10 py-7 text-right">
+                      {m.status !== 'PAID' && user.role === UserRole.RESIDENT && (
+                        <button onClick={() => setMaintenance(prev => prev.map(item => item.id === m.id ? {...item, status: 'PAID', paidDate: new Date().toLocaleDateString()} : item))} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl text-xs font-black shadow-lg shadow-indigo-600/30 hover:scale-105 transition-all">PAY NOW</button>
+                      )}
+                      {m.status === 'PAID' && <span className="text-[10px] font-black text-emerald-500">PAID ✔</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+      case 'complaints': return (
+        <div className="space-y-10 animate-in">
+          <div className="flex justify-between items-center">
+            <h2 className="text-3xl font-black text-slate-900">Complaint Register</h2>
+            {user.role === UserRole.RESIDENT && (
+              <button onClick={() => {
+                const desc = prompt("Describe your complaint:");
+                if (desc) {
+                  setComplaints([{
+                    id: Date.now().toString(),
+                    description: desc,
+                    status: 'OPEN',
+                    residentName: user.name,
+                    unit: user.unit,
+                    createdAt: new Date().toLocaleDateString()
+                  }, ...complaints]);
+                }
+              }} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-600/30">FILE COMPLAINT</button>
+            )}
+          </div>
+          <div className="space-y-4">
+            {complaints.filter(c => user.role !== UserRole.RESIDENT || c.unit === user.unit).map(c => (
+              <div key={c.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${c.status === 'RESOLVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{c.status}</span>
+                  </div>
+                  <p className="font-bold text-slate-900 text-lg mb-1">{c.description}</p>
+                  <p className="text-sm text-slate-400 font-medium">Reported by {c.residentName} ({c.unit}) • {c.createdAt}</p>
+                </div>
+                {user.role !== UserRole.RESIDENT && c.status !== 'RESOLVED' && (
+                  <button onClick={() => setComplaints(prev => prev.map(item => item.id === c.id ? {...item, status: 'RESOLVED'} : item))} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl text-xs font-black shadow-lg shadow-emerald-600/30 hover:scale-105 transition-all">MARK RESOLVED</button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
       case 'notices': return (
         <div className="space-y-10 animate-in">
           <h2 className="text-3xl font-black text-slate-900">Notice Board</h2>
@@ -516,6 +817,7 @@ const App = () => {
           </div>
         </div>
       );
+      case 'setup': return <SetupView config={config} setConfig={setConfig} onBackup={handleBackup} onRestore={handleRestore} onReset={handleReset} />;
       default: return null;
     }
   };

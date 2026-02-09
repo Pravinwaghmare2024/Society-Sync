@@ -15,6 +15,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
     { id: 'maintenance', label: 'Maintenance', icon: '💰' },
     { id: 'notices', label: 'Notices', icon: '📢' },
     { id: 'complaints', label: 'Complaints', icon: '🛠️' },
+    { id: 'staff', label: 'Staff Directory', icon: '👷' },
   ];
 
   return (

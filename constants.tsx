@@ -1,9 +1,17 @@
 
-import { User, UserRole, MaintenanceRecord, Notice, Complaint } from './types';
+import { User, UserRole, MaintenanceRecord, Notice, Complaint, StaffMember, StaffRole } from './types';
 
 export const MOCK_USERS: User[] = [
   { id: 'u1', name: 'John Doe', unit: 'A-101', role: UserRole.RESIDENT, email: 'john@example.com' },
   { id: 'u2', name: 'Admin Jane', unit: 'Office', role: UserRole.ADMIN, email: 'admin@society.com' },
+];
+
+export const MOCK_STAFF: StaffMember[] = [
+  { id: 's1', name: 'Ramesh Kumar', role: StaffRole.CLEANING, phone: '+91 98765 00001', allocatedFloors: [1, 2, 3], availability: '08:00 AM - 04:00 PM' },
+  { id: 's2', name: 'Suresh Singh', role: StaffRole.CLEANING, phone: '+91 98765 00002', allocatedFloors: [4, 5, 6], availability: '08:00 AM - 04:00 PM' },
+  { id: 's3', name: 'Sunita Devi', role: StaffRole.CLEANING, phone: '+91 98765 00003', allocatedFloors: [7, 8, 9, 10], availability: '09:00 AM - 05:00 PM' },
+  { id: 's4', name: 'Arjun Electric', role: StaffRole.ELECTRICAL, phone: '+91 98765 00004', allocatedFloors: [], availability: '24/7 (On Call)' },
+  { id: 's5', name: 'Vijay Plumber', role: StaffRole.PLUMBING, phone: '+91 98765 00005', allocatedFloors: [], availability: '10:00 AM - 06:00 PM' },
 ];
 
 export const MOCK_NOTICES: Notice[] = [

@@ -4,12 +4,29 @@ export enum UserRole {
   RESIDENT = 'RESIDENT'
 }
 
+export enum StaffRole {
+  CLEANING = 'Cleaning',
+  PLUMBING = 'Plumbing',
+  ELECTRICAL = 'Electrical',
+  SECURITY = 'Security',
+  GARDENING = 'Gardening'
+}
+
 export interface User {
   id: string;
   name: string;
   unit: string;
   role: UserRole;
   email: string;
+}
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  phone: string;
+  role: StaffRole;
+  allocatedFloors: number[]; // e.g. [1, 2, 3]
+  availability: string;
 }
 
 export interface MaintenanceRecord {
