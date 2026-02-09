@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,9 +13,10 @@
     
     <script>
       // Shim for process.env - Critical for Gemini SDK to function
+      // If hosting on IIS, replace the empty string below with your Gemini API Key
       window.process = {
         env: {
-          API_KEY: "" // Handled by the execution environment
+          API_KEY: "" 
         }
       };
     </script>
