@@ -1,256 +1,79 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom/client';
 import { GoogleGenAI, Type } from "@google/genai";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import Sidebar from './components/Sidebar';
+import Dashboard from './components/Dashboard';
+import Maintenance from './components/Maintenance';
+import Notices from './components/Notices';
+import Complaints from './components/Complaints';
+import Staff from './components/Staff';
+import Settings from './components/Settings';
+import { 
+  User, UserRole, MaintenanceRecord, Notice, Complaint, StaffMember, SocietySettings, SystemConfig 
+} from './types';
+import { MOCK_USERS, MOCK_STAFF, MOCK_MAINTENANCE, MOCK_NOTICES, MOCK_COMPLAINTS } from './constants';
 
-// --- TYPE DEFINITIONS (Inlined for reliability) ---
-
-export enum UserRole {
-  ADMIN = 'ADMIN',
-  RESIDENT = 'RESIDENT'
-}
-
-export enum StaffRole {
-  CLEANING = 'Cleaning',
-  PLUMBING = 'Plumbing',
-  ELECTRICAL = 'Electrical',
-  SECURITY = 'Security',
-  GARDENING = 'Gardening'
-}
-
-export interface User {
-  id: string;
-  name: string;
-  username: string;
-  password?: string;
-  unit: string;
-  role: UserRole;
-  email: string;
-}
-
-export interface StaffMember {
-  id: string;
-  name: string;
-  phone: string;
-  role: StaffRole;
-  allocatedFloors: number[];
-  availability: string;
-}
-
-export interface MaintenanceRecord {
-  id: string;
-  unit: string;
-  amount: number;
-  dueDate: string;
-  status: 'PAID' | 'PENDING' | 'OVERDUE';
-  month: string;
-  paidDate?: string;
-}
-
-export interface Notice {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH';
-  author: string;
-}
-
-export interface Complaint {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
-  residentId: string;
-  residentName: string;
-  unit: string;
-  createdAt: string;
-  aiPriority?: string;
-  aiSummary?: string;
-}
-
-export interface SocietySettings {
-  name: string;
-  address: string;
-  registrationNo: string;
-  gstNumber: string;
-  baseMaintenance: number;
-  lateFeePercent: number;
-  billingDay: number;
-}
-
-// --- MOCK DATA (Inlined for reliability) ---
-
-const MOCK_USERS: User[] = [
-  { id: 'u1', name: 'John Doe', username: 'john', password: 'password123', unit: 'A-101', role: UserRole.RESIDENT, email: 'john@example.com' },
-  { id: 'u2', name: 'Admin Jane', username: 'admin', password: 'admin123', unit: 'Office', role: UserRole.ADMIN, email: 'admin@society.com' },
-];
-
-const MOCK_STAFF: StaffMember[] = [
-  { id: 's1', name: 'Ramesh Kumar', role: StaffRole.CLEANING, phone: '+91 98765 00001', allocatedFloors: [1, 2, 3], availability: '08:00 AM - 04:00 PM' },
-  { id: 's4', name: 'Arjun Electric', role: StaffRole.ELECTRICAL, phone: '+91 98765 00004', allocatedFloors: [], availability: '24/7 (On Call)' },
-];
-
-const MOCK_NOTICES: Notice[] = [
-  { id: 'n1', title: 'Elevator Maintenance', content: 'Elevator in Block B will be under maintenance tomorrow from 10 AM to 2 PM.', date: '2023-11-20', priority: 'HIGH', author: 'Management' },
-];
-
-const MOCK_MAINTENANCE: MaintenanceRecord[] = [
-  { id: 'm1', unit: 'A-101', amount: 2500, dueDate: '2023-11-05', status: 'PAID', month: 'November', paidDate: '2023-11-02' },
-  { id: 'm3', unit: 'A-102', amount: 2500, dueDate: '2023-11-05', status: 'PENDING', month: 'November' },
-];
-
-const MOCK_COMPLAINTS: Complaint[] = [
-  { id: 'c1', title: 'Water Leakage', description: 'Major leakage in the kitchen ceiling.', category: 'Plumbing', status: 'OPEN', residentId: 'u1', residentName: 'John Doe', unit: 'A-101', createdAt: '2023-11-18', aiPriority: 'Urgent', aiSummary: 'Immediate attention required for kitchen ceiling leakage.' }
-];
-
-// --- AI SERVICES (Inlined for reliability) ---
-
-const analyzeComplaint = async (description: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Analyze the following housing society complaint and provide a priority (Urgent, Medium, Low) and a short summary: "${description}"`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            priority: { type: Type.STRING },
-            summary: { type: Type.STRING },
-          },
-          required: ["priority", "summary"],
-        },
-      },
-    });
-    return JSON.parse(response.text || "{}");
-  } catch (e) {
-    return { priority: 'Medium', summary: description.substring(0, 50) };
-  }
-};
-
-const generateNoticeContent = async (topic: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Write a professional housing society notice about: "${topic}"`,
-    });
-    return response.text || "Failed to generate content.";
-  } catch (e) {
-    return "Failed to generate content.";
-  }
-};
-
-// --- COMPONENTS ---
-
-const Sidebar: React.FC<{ role: UserRole, activeTab: string, setActiveTab: (t: string) => void, onLogout: () => void }> = ({ role, activeTab, setActiveTab, onLogout }) => {
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'maintenance', label: 'Accounting', icon: '💰' },
-    { id: 'notices', label: 'Notices', icon: '📢' },
-    { id: 'complaints', label: 'Helpdesk', icon: '🛠️' },
-    { id: 'staff', label: 'Staff Hub', icon: '👷' },
-    ...(role === UserRole.ADMIN ? [{ id: 'settings', label: 'Settings', icon: '⚙️' }] : []),
-  ];
-  return (
-    <aside className="w-72 bg-slate-900 text-white min-h-screen flex flex-col p-8 m-4 rounded-[2.5rem] shadow-2xl relative z-50">
-      <div className="mb-14 flex items-center gap-4">
-        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg">S</div>
-        <h1 className="text-xl font-black tracking-tighter">SocietySync</h1>
-      </div>
-      <nav className="flex-1 space-y-2 overflow-y-auto">
-        {tabs.map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all font-black text-xs tracking-wide uppercase ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
-            <span className="text-xl opacity-80">{tab.icon}</span>
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </nav>
-      <div className="mt-auto pt-8 border-t border-slate-800">
-        <button onClick={onLogout} className="w-full py-4 rounded-2xl text-rose-400 hover:bg-rose-500/10 font-black text-[10px] uppercase tracking-widest">Logout</button>
-      </div>
-    </aside>
-  );
-};
-
-const Dashboard: React.FC<{ maintenance: MaintenanceRecord[], complaints: Complaint[], notices: Notice[] }> = ({ maintenance, complaints, notices }) => {
-  const stats = [
-    { label: 'Unpaid Bills', value: maintenance.filter(m => m.status !== 'PAID').length, icon: '💸', color: 'bg-red-100 text-red-600' },
-    { label: 'Pending Complaints', value: complaints.filter(c => c.status !== 'RESOLVED').length, icon: '🛠️', color: 'bg-orange-100 text-orange-600' },
-    { label: 'Active Notices', value: notices.length, icon: '📢', color: 'bg-blue-100 text-blue-600' },
-    { label: 'Total Units', value: '120', icon: '🏢', color: 'bg-indigo-100 text-indigo-600' },
-  ];
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-            <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center text-2xl mb-4`}>{stat.icon}</div>
-            <p className="text-sm font-medium text-slate-500">{stat.label}</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</p>
-          </div>
-        ))}
-      </div>
-      <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={[{ name: 'Aug', amount: 4000 }, { name: 'Sep', amount: 3000 }, { name: 'Oct', amount: 5000 }, { name: 'Nov', amount: 4500 }]}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-            <XAxis dataKey="name" axisLine={false} tickLine={false} />
-            <YAxis axisLine={false} tickLine={false} />
-            <Tooltip />
-            <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
+const DEFAULT_CONFIG: SystemConfig = {
+  dbMode: 'LOCAL_STORAGE',
+  apiEndpoint: 'https://api.societysync.com/v1',
+  authToken: '',
+  dbHost: 'localhost',
+  dbPort: 5432,
+  dbName: 'societysync_prod',
+  dbUser: 'admin',
+  dbPassword: '',
+  dbSsl: true,
+  isMaintenanceMode: false,
+  version: '3.0.1',
+  webServer: { basePath: '/', staticCacheMaxAge: 7, enableGzip: true, enableCsp: true, hstsMaxAge: 31536000 },
+  smtp: { host: 'smtp.office365.com', port: 587, user: 'notifications@society.com', secure: true, senderName: 'SocietySync Alerts' }
 };
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>(MOCK_MAINTENANCE);
-  const [notices, setNotices] = useState<Notice[]>(MOCK_NOTICES);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  
+  // App Data State
+  const [allUsers, setAllUsers] = useState<User[]>(MOCK_USERS);
   const [complaints, setComplaints] = useState<Complaint[]>(MOCK_COMPLAINTS);
-  const [loginUsername, setLoginUsername] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-
-  useEffect(() => {
-    const session = localStorage.getItem('society_active_session');
-    if (session) {
-      try { setUser(JSON.parse(session)); } catch(e) {}
-    }
-  }, []);
+  const [notices, setNotices] = useState<Notice[]>(MOCK_NOTICES);
+  const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>(MOCK_MAINTENANCE);
+  const [staff, setStaff] = useState<StaffMember[]>(MOCK_STAFF);
+  const [settings, setSettings] = useState<SocietySettings>({
+    name: "Grand View Residency",
+    address: "123 Skyline Ave",
+    registrationNo: "REG-8899",
+    gstNumber: "", baseMaintenance: 2500, lateFeePercent: 10, billingDay: 5
+  });
+  const [config, setConfig] = useState<SystemConfig>(DEFAULT_CONFIG);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const found = MOCK_USERS.find(u => u.username === loginUsername && u.password === loginPassword);
-    if (found) {
-      const { password, ...safeUser } = found;
-      setUser(safeUser as User);
-      localStorage.setItem('society_active_session', JSON.stringify(safeUser));
-    } else {
-      alert("Invalid credentials.");
-    }
+    const found = allUsers.find(u => u.username === username && u.password === password);
+    if (found) { setUser(found); localStorage.setItem('ss_session', JSON.stringify(found)); } 
+    else alert("Invalid login");
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('society_active_session');
-  };
+  useEffect(() => {
+    const saved = localStorage.getItem('ss_session');
+    if (saved) setUser(JSON.parse(saved));
+  }, []);
+
+  const handleLogout = () => { setUser(null); localStorage.removeItem('ss_session'); };
 
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white p-12 rounded-[3.5rem] shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-500">
-          <div className="w-20 h-20 bg-indigo-600 rounded-[2.5rem] flex items-center justify-center text-white text-4xl font-black mb-10 mx-auto">S</div>
-          <h1 className="text-3xl font-black text-slate-900 mb-8 tracking-tight">SocietySync</h1>
-          <form onSubmit={handleLogin} className="space-y-5 text-left">
-            <input required type="text" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} placeholder="Username" className="w-full bg-slate-50 border-none rounded-2xl px-6 py-5 outline-none font-bold text-slate-900" />
-            <input required type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="Password" className="w-full bg-slate-50 border-none rounded-2xl px-6 py-5 outline-none font-bold text-slate-900" />
-            <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black shadow-lg shadow-indigo-100">Sign In</button>
+        <div className="w-full max-w-sm bg-white p-10 rounded-[3rem] shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-500">
+          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-3xl font-black mb-8 mx-auto shadow-lg shadow-indigo-100">S</div>
+          <h1 className="text-2xl font-black text-slate-900 mb-6 tracking-tight">SocietySync</h1>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input required type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Username" className="w-full bg-slate-50 border-none rounded-xl px-5 py-4 font-bold outline-none" />
+            <input required type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="w-full bg-slate-50 border-none rounded-xl px-5 py-4 font-bold outline-none" />
+            <button type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors">Authorize Session</button>
           </form>
         </div>
       </div>
@@ -260,23 +83,48 @@ const App: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-[#f8fafc] overflow-hidden">
       <Sidebar role={user.role} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
-      <main className="flex-1 overflow-y-auto h-screen p-12">
-        <header className="mb-12 flex justify-between items-start">
+      <main className="flex-1 overflow-y-auto h-screen p-10">
+        <header className="mb-10 flex justify-between items-start">
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{user.role} SESSION • UNIT {user.unit}</p>
-            <h2 className="text-4xl font-black text-slate-900 capitalize tracking-tight">{activeTab}</h2>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{user.role} • Unit {user.unit}</p>
+            <h2 className="text-3xl font-black text-slate-900 capitalize tracking-tight">{activeTab}</h2>
           </div>
-          <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center font-black text-indigo-600 text-xl shadow-sm">{user.name[0]}</div>
+          <div className="flex items-center gap-4">
+             <div className="text-right">
+               <p className="text-sm font-black text-slate-900 leading-none">{user.name}</p>
+               <p className="text-[10px] font-bold text-green-500 uppercase mt-1">{user.residencyType || 'OWNER'} • Active</p>
+             </div>
+             <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center font-black text-indigo-600 text-lg">{user.name[0]}</div>
+          </div>
         </header>
 
-        <div className="max-w-6xl">
-          {activeTab === 'dashboard' && <Dashboard maintenance={maintenance} complaints={complaints} notices={notices} />}
-          {activeTab !== 'dashboard' && (
-            <div className="p-20 bg-white rounded-[3rem] text-center border-2 border-dashed border-slate-100">
-               <span className="text-4xl mb-4 block opacity-20">🏗️</span>
-               <h3 className="text-xl font-black text-slate-300 uppercase tracking-widest">{activeTab} Module Active</h3>
-               <p className="text-slate-400 mt-2">Logic provisioned. Single-file architecture initialized.</p>
-            </div>
+        <div className="max-w-5xl pb-10">
+          {activeTab === 'dashboard' && <Dashboard role={user.role} maintenance={maintenance} complaints={complaints} notices={notices} />}
+          {activeTab === 'maintenance' && <Maintenance role={user.role} records={maintenance} onPay={(id)=>setMaintenance(prev => prev.map(m => m.id === id ? { ...m, status: 'PAID', paidDate: new Date().toISOString().split('T')[0] } : m))} />}
+          {activeTab === 'notices' && <Notices role={user.role} notices={notices} addNotice={(n)=>setNotices([...notices, { ...n, id: Date.now().toString() } as Notice])} />}
+          {activeTab === 'complaints' && <Complaints role={user.role} complaints={complaints} addComplaint={(c)=>setComplaints([...complaints, { ...c, id: Date.now().toString(), status: 'OPEN', residentName: user.name, unit: user.unit, createdAt: new Date().toISOString().split('T')[0] } as Complaint])} updateStatus={(id, s)=>setComplaints(prev => prev.map(c => c.id === id ? { ...c, status: s } : c))} />}
+          {activeTab === 'staff' && <Staff role={user.role} staff={staff} addStaff={(s)=>setStaff([...staff, s])} deleteStaff={(id)=>setStaff(staff.filter(s=>s.id!==id))} />}
+          {activeTab === 'settings' && (
+            <Settings 
+              settings={settings} 
+              config={config}
+              updateSettings={setSettings} 
+              onUpdateConfig={setConfig}
+              users={allUsers}
+              onAddUser={(u) => setAllUsers([...allUsers, u])}
+              onDeleteUser={(id) => setAllUsers(allUsers.filter(u => u.id !== id))}
+              staff={staff}
+              onAddStaff={(s) => setStaff([...staff, s])}
+              onDeleteStaff={(id) => setStaff(staff.filter(s => s.id !== id))}
+              onUpdateSettings={setSettings}
+              onResetDatabase={() => {
+                setAllUsers(MOCK_USERS);
+                setComplaints(MOCK_COMPLAINTS);
+                setMaintenance(MOCK_MAINTENANCE);
+                setNotices(MOCK_NOTICES);
+                setStaff(MOCK_STAFF);
+              }}
+            />
           )}
         </div>
       </main>

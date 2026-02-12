@@ -12,7 +12,7 @@ export enum StaffRole {
   GARDENING = 'Gardening'
 }
 
-export type DatabaseMode = 'LOCAL_STORAGE' | 'PRODUCTION_REST_API' | 'FIREBASE_REALTIME';
+export type DatabaseMode = 'LOCAL_STORAGE' | 'PRODUCTION_REST_API' | 'FIREBASE_REALTIME' | 'POSTGRESQL' | 'MYSQL' | 'MONGODB';
 
 export interface WebServerConfig {
   basePath: string;
@@ -34,6 +34,14 @@ export interface SystemConfig {
   dbMode: DatabaseMode;
   apiEndpoint: string;
   authToken: string;
+  // Database specific connection details
+  dbHost?: string;
+  dbPort?: number;
+  dbName?: string;
+  dbUser?: string;
+  dbPassword?: string;
+  dbSsl?: boolean;
+  
   isMaintenanceMode: boolean;
   version: string;
   webServer: WebServerConfig;
@@ -48,6 +56,7 @@ export interface User {
   unit: string;
   role: UserRole;
   email: string;
+  residencyType?: 'OWNER' | 'TENANT';
 }
 
 export interface StaffMember {

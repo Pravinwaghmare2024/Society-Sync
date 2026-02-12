@@ -22,7 +22,7 @@ const Settings: React.FC<SettingsProps> = ({
   onAddStaff, onDeleteStaff,
   onResetDatabase 
 }) => {
-  const [activeTab, setActiveTab] = useState<'society' | 'users' | 'staff-config' | 'infrastructure' | 'communication'>('society');
+  const [activeTab, setActiveTab] = useState<'society' | 'users' | 'staff-config' | 'database' | 'infrastructure' | 'communication'>('society');
   const [localSettings, setLocalSettings] = useState(settings);
   const [localConfig, setLocalConfig] = useState(config);
 
@@ -106,6 +106,7 @@ const Settings: React.FC<SettingsProps> = ({
           { id: 'society', label: 'Society Profile' },
           { id: 'users', label: 'User Directory' },
           { id: 'staff-config', label: 'Staff Roster' },
+          { id: 'database', label: 'Data Source' },
           { id: 'infrastructure', label: 'Web Config' },
           { id: 'communication', label: 'SMTP Services' }
         ].map(tab => (
@@ -260,6 +261,108 @@ const Settings: React.FC<SettingsProps> = ({
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'database' && (
+          <div className="space-y-12 animate-in">
+            <h3 className="text-xl font-black text-slate-900 mb-6">Database Connection Strategy</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {[
+                { id: 'LOCAL_STORAGE', label: 'Local Browser Storage', desc: 'No Server Required', icon: '🏠' },
+                { id: 'PRODUCTION_REST_API', label: 'REST API', desc: 'Enterprise Gateway', icon: '🌍' },
+                { id: 'POSTGRESQL', label: 'PostgreSQL', desc: 'Direct SQL Connect', icon: '🐘' },
+                { id: 'MYSQL', label: 'MySQL / MariaDB', desc: 'Standard Relational', icon: '🐬' },
+                { id: 'FIREBASE_REALTIME', label: 'Firebase', desc: 'Realtime Sync', icon: '🔥' }
+              ].map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => setLocalConfig({...localConfig, dbMode: m.id as DatabaseMode})}
+                  className={`p-6 rounded-3xl text-left border-2 transition-all ${
+                    localConfig.dbMode === m.id 
+                    ? 'border-indigo-600 bg-indigo-50 shadow-md ring-2 ring-indigo-200' 
+                    : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">{m.icon}</div>
+                  <div className="font-bold text-slate-900 text-sm">{m.label}</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">{m.desc}</div>
+                </button>
+              ))}
+            </div>
+
+            {localConfig.dbMode === 'LOCAL_STORAGE' && (
+              <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 flex items-start gap-4">
+                 <div className="text-2xl">ℹ️</div>
+                 <div>
+                   <h4 className="font-bold text-indigo-900 mb-1">Browser-based Persistence</h4>
+                   <p className="text-sm text-indigo-700 leading-relaxed">System is running in offline-first mode. All data is encrypted and stored within this specific browser instance's LocalStorage. Data will persist across refreshes but will not sync across different devices.</p>
+                 </div>
+              </div>
+            )}
+
+            {(localConfig.dbMode === 'PRODUCTION_REST_API' || localConfig.dbMode === 'FIREBASE_REALTIME') && (
+              <div className="grid grid-cols-1 gap-6 bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    {localConfig.dbMode === 'FIREBASE_REALTIME' ? 'Firebase Database URL' : 'API Endpoint URL'}
+                  </label>
+                  <input 
+                    type="text" 
+                    value={localConfig.apiEndpoint} 
+                    onChange={e => setLocalConfig({...localConfig, apiEndpoint: e.target.value})} 
+                    placeholder="https://..." 
+                    className="w-full bg-white border-none rounded-2xl px-5 py-4 font-mono text-sm text-indigo-600 outline-none shadow-sm" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    {localConfig.dbMode === 'FIREBASE_REALTIME' ? 'Service Account Key (JSON)' : 'Bearer Token / API Key'}
+                  </label>
+                  <textarea 
+                    value={localConfig.authToken} 
+                    onChange={e => setLocalConfig({...localConfig, authToken: e.target.value})} 
+                    className="w-full bg-white border-none rounded-2xl px-5 py-4 font-mono text-xs text-slate-600 outline-none shadow-sm h-32" 
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  />
+                </div>
+              </div>
+            )}
+
+            {(localConfig.dbMode === 'POSTGRESQL' || localConfig.dbMode === 'MYSQL') && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hostname / IP</label>
+                  <input type="text" value={localConfig.dbHost || ''} onChange={e => setLocalConfig({...localConfig, dbHost: e.target.value})} className="w-full bg-white border-none rounded-2xl px-5 py-4 font-mono text-sm outline-none shadow-sm" placeholder="127.0.0.1" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Port</label>
+                  <input type="number" value={localConfig.dbPort || ''} onChange={e => setLocalConfig({...localConfig, dbPort: parseInt(e.target.value)})} className="w-full bg-white border-none rounded-2xl px-5 py-4 font-mono text-sm outline-none shadow-sm" placeholder="5432" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Database Name</label>
+                  <input type="text" value={localConfig.dbName || ''} onChange={e => setLocalConfig({...localConfig, dbName: e.target.value})} className="w-full bg-white border-none rounded-2xl px-5 py-4 font-mono text-sm outline-none shadow-sm" placeholder="societysync" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Username</label>
+                  <input type="text" value={localConfig.dbUser || ''} onChange={e => setLocalConfig({...localConfig, dbUser: e.target.value})} className="w-full bg-white border-none rounded-2xl px-5 py-4 font-mono text-sm outline-none shadow-sm" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
+                  <input type="password" value={localConfig.dbPassword || ''} onChange={e => setLocalConfig({...localConfig, dbPassword: e.target.value})} className="w-full bg-white border-none rounded-2xl px-5 py-4 font-mono text-sm outline-none shadow-sm" />
+                </div>
+                <div className="md:col-span-2 flex items-center gap-4 mt-2">
+                  <input type="checkbox" checked={localConfig.dbSsl} onChange={e => setLocalConfig({...localConfig, dbSsl: e.target.checked})} className="w-5 h-5 text-indigo-600 rounded" />
+                  <span className="text-xs font-bold text-slate-600">Enable SSL/TLS Encryption</span>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-6 border-t border-slate-50 flex justify-end gap-4">
+              <button className="bg-slate-200 text-slate-600 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-300 transition-colors">Test Connection</button>
+              <button onClick={handleSaveConfig} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-colors">Apply & Restart</button>
             </div>
           </div>
         )}
