@@ -1,55 +1,189 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, MaintenanceRecord, Notice, Complaint, StaffMember, SocietySettings, SystemConfig, StaffRole } from './types.ts';
-import { MOCK_USERS, MOCK_MAINTENANCE, MOCK_NOTICES, MOCK_COMPLAINTS, MOCK_STAFF } from './constants.tsx';
-import { analyzeComplaint, generateNoticeContent } from './services/geminiService.ts';
+import { GoogleGenAI, Type } from "@google/genai";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-// --- Consolidated Sub-Components for Maximum Reliability ---
+// --- TYPE DEFINITIONS (Inlined for reliability) ---
+
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  RESIDENT = 'RESIDENT'
+}
+
+export enum StaffRole {
+  CLEANING = 'Cleaning',
+  PLUMBING = 'Plumbing',
+  ELECTRICAL = 'Electrical',
+  SECURITY = 'Security',
+  GARDENING = 'Gardening'
+}
+
+export interface User {
+  id: string;
+  name: string;
+  username: string;
+  password?: string;
+  unit: string;
+  role: UserRole;
+  email: string;
+}
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  phone: string;
+  role: StaffRole;
+  allocatedFloors: number[];
+  availability: string;
+}
+
+export interface MaintenanceRecord {
+  id: string;
+  unit: string;
+  amount: number;
+  dueDate: string;
+  status: 'PAID' | 'PENDING' | 'OVERDUE';
+  month: string;
+  paidDate?: string;
+}
+
+export interface Notice {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  author: string;
+}
+
+export interface Complaint {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
+  residentId: string;
+  residentName: string;
+  unit: string;
+  createdAt: string;
+  aiPriority?: string;
+  aiSummary?: string;
+}
+
+export interface SocietySettings {
+  name: string;
+  address: string;
+  registrationNo: string;
+  gstNumber: string;
+  baseMaintenance: number;
+  lateFeePercent: number;
+  billingDay: number;
+}
+
+// --- MOCK DATA (Inlined for reliability) ---
+
+const MOCK_USERS: User[] = [
+  { id: 'u1', name: 'John Doe', username: 'john', password: 'password123', unit: 'A-101', role: UserRole.RESIDENT, email: 'john@example.com' },
+  { id: 'u2', name: 'Admin Jane', username: 'admin', password: 'admin123', unit: 'Office', role: UserRole.ADMIN, email: 'admin@society.com' },
+];
+
+const MOCK_STAFF: StaffMember[] = [
+  { id: 's1', name: 'Ramesh Kumar', role: StaffRole.CLEANING, phone: '+91 98765 00001', allocatedFloors: [1, 2, 3], availability: '08:00 AM - 04:00 PM' },
+  { id: 's4', name: 'Arjun Electric', role: StaffRole.ELECTRICAL, phone: '+91 98765 00004', allocatedFloors: [], availability: '24/7 (On Call)' },
+];
+
+const MOCK_NOTICES: Notice[] = [
+  { id: 'n1', title: 'Elevator Maintenance', content: 'Elevator in Block B will be under maintenance tomorrow from 10 AM to 2 PM.', date: '2023-11-20', priority: 'HIGH', author: 'Management' },
+];
+
+const MOCK_MAINTENANCE: MaintenanceRecord[] = [
+  { id: 'm1', unit: 'A-101', amount: 2500, dueDate: '2023-11-05', status: 'PAID', month: 'November', paidDate: '2023-11-02' },
+  { id: 'm3', unit: 'A-102', amount: 2500, dueDate: '2023-11-05', status: 'PENDING', month: 'November' },
+];
+
+const MOCK_COMPLAINTS: Complaint[] = [
+  { id: 'c1', title: 'Water Leakage', description: 'Major leakage in the kitchen ceiling.', category: 'Plumbing', status: 'OPEN', residentId: 'u1', residentName: 'John Doe', unit: 'A-101', createdAt: '2023-11-18', aiPriority: 'Urgent', aiSummary: 'Immediate attention required for kitchen ceiling leakage.' }
+];
+
+// --- AI SERVICES (Inlined for reliability) ---
+
+const analyzeComplaint = async (description: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Analyze the following housing society complaint and provide a priority (Urgent, Medium, Low) and a short summary: "${description}"`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            priority: { type: Type.STRING },
+            summary: { type: Type.STRING },
+          },
+          required: ["priority", "summary"],
+        },
+      },
+    });
+    return JSON.parse(response.text || "{}");
+  } catch (e) {
+    return { priority: 'Medium', summary: description.substring(0, 50) };
+  }
+};
+
+const generateNoticeContent = async (topic: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Write a professional housing society notice about: "${topic}"`,
+    });
+    return response.text || "Failed to generate content.";
+  } catch (e) {
+    return "Failed to generate content.";
+  }
+};
+
+// --- COMPONENTS ---
 
 const Sidebar: React.FC<{ role: UserRole, activeTab: string, setActiveTab: (t: string) => void, onLogout: () => void }> = ({ role, activeTab, setActiveTab, onLogout }) => {
-  const isAdmin = role === UserRole.ADMIN;
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'maintenance', label: 'Accounting', icon: '💰' },
     { id: 'notices', label: 'Notices', icon: '📢' },
     { id: 'complaints', label: 'Helpdesk', icon: '🛠️' },
     { id: 'staff', label: 'Staff Hub', icon: '👷' },
-    ...(isAdmin ? [{ id: 'settings', label: 'Settings', icon: '⚙️' }] : []),
+    ...(role === UserRole.ADMIN ? [{ id: 'settings', label: 'Settings', icon: '⚙️' }] : []),
   ];
   return (
     <aside className="w-72 bg-slate-900 text-white min-h-screen flex flex-col p-8 m-4 rounded-[2.5rem] shadow-2xl relative z-50">
       <div className="mb-14 flex items-center gap-4">
-        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-indigo-900/40">S</div>
-        <div>
-          <h1 className="text-xl font-black tracking-tighter leading-none">SocietySync</h1>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Enterprise ERP</p>
-        </div>
+        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg">S</div>
+        <h1 className="text-xl font-black tracking-tighter">SocietySync</h1>
       </div>
-      <nav className="flex-1 space-y-2 overflow-y-auto pr-2">
+      <nav className="flex-1 space-y-2 overflow-y-auto">
         {tabs.map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all font-black text-xs tracking-wide uppercase ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-900/30' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all font-black text-xs tracking-wide uppercase ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
             <span className="text-xl opacity-80">{tab.icon}</span>
             <span>{tab.label}</span>
           </button>
         ))}
       </nav>
       <div className="mt-auto pt-8 border-t border-slate-800">
-        <button onClick={onLogout} className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-2xl text-rose-400 hover:bg-rose-500/10 font-black text-[10px] uppercase tracking-widest transition-all">TERMINATE SESSION</button>
+        <button onClick={onLogout} className="w-full py-4 rounded-2xl text-rose-400 hover:bg-rose-500/10 font-black text-[10px] uppercase tracking-widest">Logout</button>
       </div>
     </aside>
   );
 };
 
-const Dashboard: React.FC<{ role: UserRole, maintenance: MaintenanceRecord[], complaints: Complaint[], notices: Notice[] }> = ({ role, maintenance, complaints, notices }) => {
+const Dashboard: React.FC<{ maintenance: MaintenanceRecord[], complaints: Complaint[], notices: Notice[] }> = ({ maintenance, complaints, notices }) => {
   const stats = [
     { label: 'Unpaid Bills', value: maintenance.filter(m => m.status !== 'PAID').length, icon: '💸', color: 'bg-red-100 text-red-600' },
     { label: 'Pending Complaints', value: complaints.filter(c => c.status !== 'RESOLVED').length, icon: '🛠️', color: 'bg-orange-100 text-orange-600' },
     { label: 'Active Notices', value: notices.length, icon: '📢', color: 'bg-blue-100 text-blue-600' },
     { label: 'Total Units', value: '120', icon: '🏢', color: 'bg-indigo-100 text-indigo-600' },
   ];
-  const chartData = [ { name: 'Aug', amount: 4000 }, { name: 'Sep', amount: 3000 }, { name: 'Oct', amount: 5000 }, { name: 'Nov', amount: 4500 } ];
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
@@ -61,7 +195,7 @@ const Dashboard: React.FC<{ role: UserRole, maintenance: MaintenanceRecord[], co
       </div>
       <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData}>
+          <BarChart data={[{ name: 'Aug', amount: 4000 }, { name: 'Sep', amount: 3000 }, { name: 'Oct', amount: 5000 }, { name: 'Nov', amount: 4500 }]}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis dataKey="name" axisLine={false} tickLine={false} />
             <YAxis axisLine={false} tickLine={false} />
@@ -74,54 +208,9 @@ const Dashboard: React.FC<{ role: UserRole, maintenance: MaintenanceRecord[], co
   );
 };
 
-const MaintenanceView: React.FC<{ records: MaintenanceRecord[], onPay: (id: string) => void }> = ({ records, onPay }) => (
-  <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-    <table className="w-full text-left">
-      <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
-        <tr>
-          <th className="px-8 py-5">Period</th>
-          <th className="px-8 py-5">Amount</th>
-          <th className="px-8 py-5">Status</th>
-          <th className="px-8 py-5">Action</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-slate-50">
-        {records.map(r => (
-          <tr key={r.id} className="text-sm font-bold text-slate-700">
-            <td className="px-8 py-6">{r.month} 2023</td>
-            <td className="px-8 py-6">₹{r.amount}</td>
-            <td className="px-8 py-6">
-              <span className={`px-3 py-1 rounded-full text-[10px] ${r.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                {r.status}
-              </span>
-            </td>
-            <td className="px-8 py-6">
-              {r.status !== 'PAID' && <button onClick={() => onPay(r.id)} className="text-indigo-600 hover:underline">Pay Now</button>}
-              {r.status === 'PAID' && <span className="text-slate-300">Receipt Issued</span>}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
-
-// --- Main App Implementation ---
-
-const DEFAULT_SOCIETY: SocietySettings = {
-  name: "Grand View Residency",
-  address: "123 Skyview Lane, Sector 45, Metropolis",
-  registrationNo: "SOC/2023/8812",
-  gstNumber: "27AAACG0001A1Z1",
-  baseMaintenance: 2500,
-  lateFeePercent: 10,
-  billingDay: 5
-};
-
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>(MOCK_MAINTENANCE);
   const [notices, setNotices] = useState<Notice[]>(MOCK_NOTICES);
   const [complaints, setComplaints] = useState<Complaint[]>(MOCK_COMPLAINTS);
@@ -131,13 +220,13 @@ const App: React.FC = () => {
   useEffect(() => {
     const session = localStorage.getItem('society_active_session');
     if (session) {
-      try { setUser(JSON.parse(session)); } catch(e) { console.error("Session corrupted"); }
+      try { setUser(JSON.parse(session)); } catch(e) {}
     }
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const found = users.find(u => u.username.toLowerCase() === loginUsername.toLowerCase() && u.password === loginPassword);
+    const found = MOCK_USERS.find(u => u.username === loginUsername && u.password === loginPassword);
     if (found) {
       const { password, ...safeUser } = found;
       setUser(safeUser as User);
@@ -168,13 +257,11 @@ const App: React.FC = () => {
     );
   }
 
-  const userMaintenance = maintenance.filter(m => user.role === UserRole.ADMIN || m.unit === user.unit);
-
   return (
     <div className="flex min-h-screen bg-[#f8fafc] overflow-hidden">
       <Sidebar role={user.role} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
-      <main className="flex-1 overflow-y-auto h-screen p-12 relative">
-        <header className="mb-12 flex justify-between items-start sticky top-0 bg-[#f8fafc]/80 backdrop-blur-md z-10 py-4">
+      <main className="flex-1 overflow-y-auto h-screen p-12">
+        <header className="mb-12 flex justify-between items-start">
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{user.role} SESSION • UNIT {user.unit}</p>
             <h2 className="text-4xl font-black text-slate-900 capitalize tracking-tight">{activeTab}</h2>
@@ -183,13 +270,12 @@ const App: React.FC = () => {
         </header>
 
         <div className="max-w-6xl">
-          {activeTab === 'dashboard' && <Dashboard role={user.role} maintenance={maintenance} complaints={complaints} notices={notices} />}
-          {activeTab === 'maintenance' && <MaintenanceView records={userMaintenance} onPay={(id) => alert("Redirecting to IIS Secure Payment Gateway...")} />}
-          {activeTab !== 'dashboard' && activeTab !== 'maintenance' && (
+          {activeTab === 'dashboard' && <Dashboard maintenance={maintenance} complaints={complaints} notices={notices} />}
+          {activeTab !== 'dashboard' && (
             <div className="p-20 bg-white rounded-[3rem] text-center border-2 border-dashed border-slate-100">
                <span className="text-4xl mb-4 block opacity-20">🏗️</span>
-               <h3 className="text-xl font-black text-slate-300 uppercase tracking-widest">{activeTab} MODULE ACTIVE</h3>
-               <p className="text-slate-400 mt-2">Module logic provisioned in kernel. Transpilation successful.</p>
+               <h3 className="text-xl font-black text-slate-300 uppercase tracking-widest">{activeTab} Module Active</h3>
+               <p className="text-slate-400 mt-2">Logic provisioned. Single-file architecture initialized.</p>
             </div>
           )}
         </div>

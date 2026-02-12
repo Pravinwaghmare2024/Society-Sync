@@ -5,22 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SocietySync | Enterprise ERP</title>
     
-    <!-- Use relative base to support IIS virtual directories automatically -->
     <base href="./" />
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <script>
-      // Global configuration for IIS Environment
       window.process = { 
         env: { 
-          API_KEY: "", // Injected by host environment
+          API_KEY: "", 
           NODE_ENV: "production"
         } 
       };
       
-      // Robust Error Interceptor for IIS Deployment
       window.onerror = function(msg, url, line, col, error) {
         console.error("System Boot Error:", {msg, url, line, error});
         const root = document.getElementById('root');
@@ -30,9 +27,9 @@
               <div style="max-width:500px; background:white; padding:40px; border-radius:32px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.1); border:1px solid #f1f5f9;">
                 <div style="width:60px; height:60px; background:#fee2e2; border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:30px; margin-bottom:24px;">⚠️</div>
                 <h2 style="font-weight:900; font-size:24px; color:#0f172a; margin-bottom:8px;">Production Boot Error</h2>
-                <p style="color:#64748b; font-size:14px; line-height:1.6; margin-bottom:24px;">The application failed to initialize. If running on IIS, please ensure the URL Rewrite module is installed and .tsx MIME types are mapped to application/javascript.</p>
+                <p style="color:#64748b; font-size:14px; line-height:1.6; margin-bottom:24px;">The app failed to mount. Ensure IIS has the URL Rewrite module and .tsx MIME types mapped to application/javascript.</p>
                 <div id="error-log" style="background:#f8fafc; padding:16px; border-radius:12px; font-family:monospace; font-size:11px; color:#ef4444; overflow-x:auto; white-space:pre-wrap;"></div>
-                <button onclick="location.reload()" style="margin-top:32px; width:100%; background:#4f46e5; color:white; border:none; padding:16px; border-radius:16px; font-weight:800; cursor:pointer; transition:transform 0.2s;">Retry Connection</button>
+                <button onclick="location.reload()" style="margin-top:32px; width:100%; background:#4f46e5; color:white; border:none; padding:16px; border-radius:16px; font-weight:800; cursor:pointer;">Retry Boot Sequence</button>
               </div>
             </div>`;
           document.getElementById('error-log').textContent = msg + (line ? " at line " + line : "");
@@ -45,12 +42,8 @@
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; overflow: hidden; }
         #root { height: 100vh; }
         .boot-screen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; }
-        .spinner { width: 48px; height: 48px; border: 5px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
     </style>
 
     <script type="importmap">
@@ -61,8 +54,8 @@
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "recharts": "https://esm.sh/recharts@2.15.0?deps=react@19.0.0,react-dom@19.0.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/"
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
   }
 }
 </script>
@@ -73,10 +66,12 @@
     <div id="root">
         <div class="boot-screen">
             <div class="spinner"></div>
-            <p style="margin-top:24px; color:#475569; font-weight:800; letter-spacing:-0.02em; font-size:14px;">SECURE BOOT INITIALIZING...</p>
+            <p style="margin-top:20px; color:#64748b; font-weight:700; font-size:12px; letter-spacing:0.1em; text-transform:uppercase;">Secure Boot Initializing...</p>
         </div>
     </div>
     
-    <script type="text/babel" data-presets="react,typescript" data-type="module" src="index.tsx"></script>
+    <script type="text/babel" data-presets="react,typescript" data-type="module">
+        import './index.tsx';
+    </script>
 </body>
 </html>
