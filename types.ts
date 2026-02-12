@@ -50,6 +50,7 @@ export interface SystemConfig {
 
 export interface User {
   id: string;
+  societyId: string;
   name: string;
   username: string;
   password?: string;
@@ -61,6 +62,7 @@ export interface User {
 
 export interface StaffMember {
   id: string;
+  societyId: string;
   name: string;
   phone: string;
   role: StaffRole;
@@ -70,6 +72,7 @@ export interface StaffMember {
 
 export interface MaintenanceRecord {
   id: string;
+  societyId: string;
   unit: string;
   amount: number;
   dueDate: string;
@@ -80,6 +83,7 @@ export interface MaintenanceRecord {
 
 export interface Notice {
   id: string;
+  societyId: string;
   title: string;
   content: string;
   date: string;
@@ -89,6 +93,7 @@ export interface Notice {
 
 export interface Complaint {
   id: string;
+  societyId: string;
   title: string;
   description: string;
   category: string;
@@ -102,6 +107,8 @@ export interface Complaint {
 }
 
 export interface SocietySettings {
+  id: string;
+  code: string;
   name: string;
   address: string;
   registrationNo: string;

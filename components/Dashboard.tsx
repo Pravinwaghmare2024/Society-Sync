@@ -4,12 +4,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 interface DashboardProps {
   role: UserRole;
+  societyName: string;
   maintenance: MaintenanceRecord[];
   complaints: Complaint[];
   notices: Notice[];
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ role, maintenance, complaints, notices }) => {
+const Dashboard: React.FC<DashboardProps> = ({ role, societyName, maintenance, complaints, notices }) => {
   const isAdmin = role === UserRole.ADMIN;
 
   const stats = [
@@ -35,7 +36,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, maintenance, complaints, no
         </div>
         <div className="flex items-center gap-3">
           <div className="px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-600">
-            📍 Grand View Residency
+            📍 {societyName}
           </div>
         </div>
       </div>

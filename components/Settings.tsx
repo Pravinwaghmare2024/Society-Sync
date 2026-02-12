@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { SocietySettings, SystemConfig, DatabaseMode, User, UserRole, StaffMember, StaffRole } from '../types.ts';
 
 interface SettingsProps {
-  settings: SocietySettings;
+  settings: SocietySettings; // The CURRENT active society
   config: SystemConfig;
   users: User[];
   staff: StaffMember[];
+  societies: SocietySettings[]; // All societies for the multi-tenant tab
   onUpdateSettings: (s: SocietySettings) => void;
   onUpdateConfig: (c: SystemConfig) => void;
   onAddUser: (u: User) => void;
@@ -13,21 +14,25 @@ interface SettingsProps {
   onAddStaff: (s: StaffMember) => void;
   onDeleteStaff: (id: string) => void;
   onResetDatabase: () => void;
+  onAddSociety: (s: SocietySettings) => void;
+  onDeleteSociety: (id: string) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({ 
-  settings, config, users, staff,
+  settings, config, users, staff, societies,
   onUpdateSettings, onUpdateConfig, 
   onAddUser, onDeleteUser,
   onAddStaff, onDeleteStaff,
-  onResetDatabase 
+  onResetDatabase,
+  onAddSociety, onDeleteSociety
 }) => {
-  const [activeTab, setActiveTab] = useState<'society' | 'users' | 'staff-config' | 'database' | 'infrastructure' | 'communication'>('society');
+  const [activeTab, setActiveTab] = useState<'society' | 'users' | 'staff-config' | 'database' | 'infrastructure' | 'communication' | 'multi-society'>('society');
   const [localSettings, setLocalSettings] = useState(settings);
   const [localConfig, setLocalConfig] = useState(config);
 
-  const [newUser, setNewUser] = useState({ name: '', username: '', password: '', unit: '', role: UserRole.RESIDENT, email: '' });
+  const [newUser, setNewUser] = useState({ name: '', username: '', password: '', unit: '', role: UserRole.RESIDENT, email: '', residencyType: 'OWNER' });
   const [newStaff, setNewStaff] = useState({ name: '', phone: '', role: StaffRole.CLEANING, availability: '', floors: '' });
+  const [newSociety, setNewSociety] = useState({ name: '', code: '', address: '', regNo: '' });
 
   const handleSaveSociety = () => {
     onUpdateSettings(localSettings);
@@ -45,8 +50,9 @@ const Settings: React.FC<SettingsProps> = ({
       alert("Username already exists in system directory.");
       return;
     }
-    onAddUser({ ...newUser, id: Date.now().toString() });
-    setNewUser({ name: '', username: '', password: '', unit: '', role: UserRole.RESIDENT, email: '' });
+    // Note: App.tsx handles assigning the correct societyId
+    onAddUser({ ...newUser, id: Date.now().toString() } as User);
+    setNewUser({ name: '', username: '', password: '', unit: '', role: UserRole.RESIDENT, email: '', residencyType: 'OWNER' });
     alert("User account provisioned successfully.");
   };
 
@@ -60,9 +66,30 @@ const Settings: React.FC<SettingsProps> = ({
       role: newStaff.role,
       allocatedFloors,
       availability: newStaff.availability
-    });
+    } as StaffMember);
     setNewStaff({ name: '', phone: '', role: StaffRole.CLEANING, availability: '', floors: '' });
     alert("Staff member registered in roster.");
+  };
+
+  const handleCreateSociety = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (societies.find(s => s.code === newSociety.code)) {
+      alert("Society Code must be unique.");
+      return;
+    }
+    onAddSociety({
+      id: 'soc_' + Date.now().toString(),
+      code: newSociety.code,
+      name: newSociety.name,
+      address: newSociety.address,
+      registrationNo: newSociety.regNo,
+      gstNumber: '',
+      baseMaintenance: 2000,
+      lateFeePercent: 5,
+      billingDay: 1
+    });
+    setNewSociety({ name: '', code: '', address: '', regNo: '' });
+    alert("New Society Environment Created.");
   };
 
   const downloadWebConfig = () => {
@@ -106,6 +133,7 @@ const Settings: React.FC<SettingsProps> = ({
           { id: 'society', label: 'Society Profile' },
           { id: 'users', label: 'User Directory' },
           { id: 'staff-config', label: 'Staff Roster' },
+          { id: 'multi-society', label: 'Multi-Society' },
           { id: 'database', label: 'Data Source' },
           { id: 'infrastructure', label: 'Web Config' },
           { id: 'communication', label: 'SMTP Services' }
@@ -123,7 +151,7 @@ const Settings: React.FC<SettingsProps> = ({
       <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm min-h-[500px]">
         {activeTab === 'society' && (
           <div className="space-y-8 animate-in">
-            <h3 className="text-xl font-black text-slate-900 mb-6">Master Society Profile</h3>
+            <h3 className="text-xl font-black text-slate-900 mb-6">Master Society Profile ({localSettings.code})</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Legal Name</label>
@@ -166,13 +194,20 @@ const Settings: React.FC<SettingsProps> = ({
                   <input required type="text" placeholder="A-101" value={newUser.unit} onChange={e => setNewUser({...newUser, unit: e.target.value})} className="w-full bg-white border-none rounded-2xl px-5 py-4 text-sm font-bold shadow-sm" />
                 </div>
                 <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Residency Type</label>
+                  <select value={newUser.residencyType} onChange={e => setNewUser({...newUser, residencyType: e.target.value as 'OWNER' | 'TENANT'})} className="w-full bg-white border-none rounded-2xl px-5 py-4 text-sm font-bold shadow-sm h-[52px]">
+                    <option value="OWNER">Flat Owner</option>
+                    <option value="TENANT">Rented / Tenant</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">System Role</label>
                   <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value as UserRole})} className="w-full bg-white border-none rounded-2xl px-5 py-4 text-sm font-bold shadow-sm h-[52px]">
                     <option value={UserRole.RESIDENT}>Resident Portal</option>
                     <option value={UserRole.ADMIN}>System Administrator</option>
                   </select>
                 </div>
-                <div className="flex items-end">
+                <div className="flex items-end md:col-span-3">
                   <button type="submit" className="w-full bg-indigo-600 text-white rounded-2xl h-[52px] font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors">Authorize Account</button>
                 </div>
               </form>
@@ -185,6 +220,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <th className="pb-4 pl-4">Account Holder</th>
                     <th className="pb-4">Username</th>
                     <th className="pb-4">Unit</th>
+                    <th className="pb-4">Status</th>
                     <th className="pb-4">Privileges</th>
                     <th className="pb-4 text-right pr-4">Actions</th>
                   </tr>
@@ -195,6 +231,7 @@ const Settings: React.FC<SettingsProps> = ({
                       <td className="py-5 pl-4">{u.name}</td>
                       <td className="py-5 font-mono text-xs text-slate-500">{u.username}</td>
                       <td className="py-5">{u.unit}</td>
+                      <td className="py-5"><span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded">{u.residencyType || 'OWNER'}</span></td>
                       <td className="py-5">
                         <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${u.role === UserRole.ADMIN ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
                           {u.role}
@@ -263,6 +300,61 @@ const Settings: React.FC<SettingsProps> = ({
               </table>
             </div>
           </div>
+        )}
+
+        {activeTab === 'multi-society' && (
+           <div className="space-y-12 animate-in">
+             <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
+               <h4 className="text-sm font-black text-slate-900 uppercase mb-6 tracking-tight">Provision New Society Tenant</h4>
+               <form onSubmit={handleCreateSociety} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                 <div className="space-y-2">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Society Name</label>
+                   <input required type="text" value={newSociety.name} onChange={e => setNewSociety({...newSociety, name: e.target.value})} className="w-full bg-white border-none rounded-2xl px-5 py-4 text-sm font-bold shadow-sm" placeholder="e.g. Royal Heights" />
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Login Code (Unique)</label>
+                   <input required type="text" value={newSociety.code} onChange={e => setNewSociety({...newSociety, code: e.target.value})} className="w-full bg-white border-none rounded-2xl px-5 py-4 text-sm font-bold shadow-sm" placeholder="e.g. RH_001" />
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Registration No.</label>
+                   <input required type="text" value={newSociety.regNo} onChange={e => setNewSociety({...newSociety, regNo: e.target.value})} className="w-full bg-white border-none rounded-2xl px-5 py-4 text-sm font-bold shadow-sm" />
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</label>
+                   <input required type="text" value={newSociety.address} onChange={e => setNewSociety({...newSociety, address: e.target.value})} className="w-full bg-white border-none rounded-2xl px-5 py-4 text-sm font-bold shadow-sm" />
+                 </div>
+                 <div className="md:col-span-2 pt-2">
+                   <button type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100">Create Environment</button>
+                 </div>
+               </form>
+             </div>
+
+             <div className="overflow-x-auto">
+               <table className="w-full text-left">
+                 <thead>
+                   <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                     <th className="pb-4 pl-4">Society</th>
+                     <th className="pb-4">Login Code</th>
+                     <th className="pb-4">System ID</th>
+                     <th className="pb-4 text-right pr-4">Actions</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-slate-50">
+                   {societies.map(s => (
+                     <tr key={s.id} className={`text-sm font-bold text-slate-900 group ${settings.id === s.id ? 'bg-indigo-50/50' : ''}`}>
+                       <td className="py-5 pl-4">{s.name}<br/><span className="text-[10px] font-normal text-slate-500">{s.address}</span></td>
+                       <td className="py-5 font-mono text-xs text-indigo-600 bg-indigo-50 w-fit px-2 rounded">{s.code}</td>
+                       <td className="py-5 font-mono text-xs text-slate-400">{s.id}</td>
+                       <td className="py-5 text-right pr-4">
+                         {settings.id !== s.id && <button onClick={() => onDeleteSociety(s.id)} className="text-rose-400 text-[10px] font-black uppercase tracking-widest hover:text-rose-600">Delete</button>}
+                         {settings.id === s.id && <span className="text-[9px] font-black text-green-600 uppercase">Current</span>}
+                       </td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+           </div>
         )}
 
         {activeTab === 'database' && (
