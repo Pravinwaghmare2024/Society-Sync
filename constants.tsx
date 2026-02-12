@@ -1,5 +1,5 @@
 
-import { User, UserRole, MaintenanceRecord, Notice, Complaint, StaffMember, StaffRole } from './types';
+import { User, UserRole, MaintenanceRecord, Notice, Complaint, StaffMember, StaffRole } from './types.ts';
 
 export const MOCK_USERS: User[] = [
   { 
