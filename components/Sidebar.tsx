@@ -1,39 +1,53 @@
 
 import React from 'react';
-import { UserRole } from '../types.ts';
+import { UserRole, SocietySettings } from '../types.ts';
 
 interface SidebarProps {
   role: UserRole;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onLogout: () => void;
+  society: SocietySettings;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogout, society }) => {
   const isAdmin = role === UserRole.ADMIN;
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'maintenance', label: 'Accounting', icon: '💰' },
+    { id: 'maintenance', label: 'Maintenance', icon: '💰' },
+    { id: 'accounting', label: 'Finance', icon: '🏦' },
+    { id: 'documents', label: 'Documents', icon: '📁' },
     { id: 'notices', label: 'Notices', icon: '📢' },
     { id: 'complaints', label: 'Helpdesk', icon: '🛠️' },
     { id: 'staff', label: 'Staff Hub', icon: '👷' },
-    ...(isAdmin ? [{ id: 'settings', label: 'Settings', icon: '⚙️' }] : []),
+    ...(isAdmin ? [
+      { id: 'society-config', label: 'Society Config', icon: '🏢' },
+      { id: 'settings', label: 'Settings', icon: '⚙️' },
+      { id: 'installation', label: 'Install Guide', icon: '📜' }
+    ] : []),
   ];
 
   return (
-    <aside className="w-72 bg-slate-900 text-white min-h-screen flex flex-col p-8 m-4 rounded-[2.5rem] shadow-2xl relative z-50">
-      <div className="mb-14 flex items-center gap-4">
-        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-indigo-900/40">
-          S
+    <aside className="w-72 bg-slate-900 text-white h-[calc(100vh-2rem)] flex flex-col p-8 m-4 rounded-[2.5rem] shadow-2xl relative z-50">
+      <div className="mb-14 flex items-center gap-5 shrink-0">
+        <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center font-black shadow-lg shadow-indigo-900/40 overflow-hidden">
+          {society.logoUrl ? (
+            <img src={society.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-3xl">S</span>
+          )}
         </div>
         <div>
-          <h1 className="text-xl font-black tracking-tighter leading-none">SocietySync</h1>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Enterprise ERP</p>
+          <h1 className="text-xl font-black tracking-tighter leading-none truncate max-w-[140px]">{society.name}</h1>
+          <div className="mt-1.5 space-y-0.5">
+            <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{society.phone}</p>
+            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[140px]">{society.email}</p>
+          </div>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
+      <nav className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar min-h-0">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -50,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
         ))}
       </nav>
 
-      <div className="mt-auto pt-8 border-t border-slate-800">
+      <div className="mt-8 pt-8 border-t border-slate-800 shrink-0">
         <div className="p-5 bg-slate-800/50 rounded-3xl mb-4 border border-slate-800">
           <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Authenticated ID</p>
           <p className="text-xs font-bold text-white truncate">

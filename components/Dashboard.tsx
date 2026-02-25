@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { UserRole, MaintenanceRecord, Complaint, Notice } from '../types.ts';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -35,7 +36,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, societyName, maintenance, c
           <p className="text-slate-500">Here's what's happening in your society today.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-600">
+          <div className="px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-600 shadow-sm">
             📍 {societyName}
           </div>
         </div>
@@ -57,7 +58,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, societyName, maintenance, c
         <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-bold text-slate-900">Maintenance Collection Trend</h3>
-            <select className="bg-slate-50 border-none rounded-lg text-sm font-medium px-3 py-1">
+            <select className="bg-slate-50 border-none rounded-lg text-sm font-medium px-3 py-1 outline-none">
               <option>Last 6 Months</option>
               <option>Last Year</option>
             </select>
@@ -67,10 +68,11 @@ const Dashboard: React.FC<DashboardProps> = ({ role, societyName, maintenance, c
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} tickFormatter={(value) => `₹${value}`} />
                 <Tooltip 
                   cursor={{fill: '#f8fafc'}}
                   contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                  formatter={(value) => [`₹${value}`, 'Collection']}
                 />
                 <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
                   {chartData.map((entry, index) => (
@@ -82,7 +84,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, societyName, maintenance, c
           </div>
         </div>
 
-        <div className="bg-indigo-600 p-8 rounded-2xl text-white flex flex-col justify-between relative overflow-hidden">
+        <div className="bg-indigo-600 p-8 rounded-2xl text-white flex flex-col justify-between relative overflow-hidden shadow-xl shadow-indigo-100">
           <div className="relative z-10">
             <h3 className="text-xl font-bold mb-2">Announcement</h3>
             <p className="text-indigo-100 text-sm leading-relaxed">
@@ -90,7 +92,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, societyName, maintenance, c
             </p>
           </div>
           <div className="mt-8 relative z-10">
-            <button className="bg-white text-indigo-600 px-6 py-2 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors">
+            <button className="bg-white text-indigo-600 px-6 py-2 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-lg">
               Read Details
             </button>
           </div>

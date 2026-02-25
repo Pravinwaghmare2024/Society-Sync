@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Notice, UserRole } from '../types.ts';
 import { generateNoticeContent } from '../services/geminiService.ts';

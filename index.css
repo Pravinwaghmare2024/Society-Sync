@@ -1,0 +1,38 @@
+/* SocietySync Global Styles */
+:root {
+  --indigo-primary: #4f46e5;
+  --slate-bg: #f8fafc;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--slate-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+}
