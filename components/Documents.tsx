@@ -1,19 +1,31 @@
 
 import React, { useState } from 'react';
-import { User, UserRole, DocumentType, UserDocument } from '../types.ts';
+import { User, UserRole, DocumentType, UserDocument, SocietySettings } from '../types.ts';
 
 interface DocumentsProps {
   user: User;
   allUsers: User[];
   onUpdateDocuments: (userId: string, docs: UserDocument[]) => void;
   requiredTypes: string[];
+  society?: SocietySettings;
+  onUpdateSociety?: (s: SocietySettings) => void;
 }
 
-const Documents: React.FC<DocumentsProps> = ({ user, allUsers, onUpdateDocuments, requiredTypes }) => {
+const Documents: React.FC<DocumentsProps> = ({ 
+  user, 
+  allUsers, 
+  onUpdateDocuments, 
+  requiredTypes,
+  society,
+  onUpdateSociety
+}) => {
   const isAdmin = user.role === UserRole.ADMIN;
   const [uploadingType, setUploadingType] = useState<string | null>(null);
   const [isAddingOther, setIsAddingOther] = useState(false);
   const [otherLabel, setOtherLabel] = useState('');
+  
+  const [isAddingRequirement, setIsAddingRequirement] = useState(false);
+  const [newRequirement, setNewRequirement] = useState('');
 
   const handleFileUpload = (type: string, customLabel?: string) => {
     setUploadingType(type);
@@ -34,6 +46,20 @@ const Documents: React.FC<DocumentsProps> = ({ user, allUsers, onUpdateDocuments
     }, 1200);
   };
 
+  const handleAddRequirement = () => {
+    if (!newRequirement.trim() || !society || !onUpdateSociety) return;
+    const type = newRequirement.trim().toUpperCase().replace(/\s+/g, '_');
+    if (society.requiredDocumentTypes.includes(type)) return;
+    
+    const updatedSociety = {
+      ...society,
+      requiredDocumentTypes: [...society.requiredDocumentTypes, type]
+    };
+    onUpdateSociety(updatedSociety);
+    setNewRequirement('');
+    setIsAddingRequirement(false);
+  };
+
   const handleVerify = (userId: string, docToVerify: UserDocument) => {
     const targetUser = allUsers.find(u => u.id === userId);
     if (!targetUser) return;
@@ -50,10 +76,40 @@ const Documents: React.FC<DocumentsProps> = ({ user, allUsers, onUpdateDocuments
 
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">System Auditor</h2>
-          <p className="text-slate-500">Global review of resident compliance documentation.</p>
+        <div className="flex justify-between items-end">
+          <div>
+            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">System Auditor</h2>
+            <p className="text-slate-500">Global review of resident compliance documentation.</p>
+          </div>
+          <button 
+            onClick={() => setIsAddingRequirement(!isAddingRequirement)}
+            className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100"
+          >
+            {isAddingRequirement ? 'Cancel' : '+ Add Requirement'}
+          </button>
         </div>
+
+        {isAddingRequirement && (
+          <div className="bg-indigo-50 p-8 rounded-[2.5rem] border border-indigo-100 animate-in slide-in-from-top-4">
+            <h4 className="font-black text-indigo-900 mb-4 text-sm uppercase tracking-widest">Add New Mandatory Document Type</h4>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <input 
+                type="text" 
+                placeholder="e.g. RENT_AGREEMENT, TAX_RECEIPT"
+                value={newRequirement}
+                onChange={e => setNewRequirement(e.target.value)}
+                className="flex-1 bg-white p-4 rounded-2xl font-bold text-sm outline-none shadow-sm uppercase"
+              />
+              <button 
+                onClick={handleAddRequirement}
+                disabled={!newRequirement.trim()}
+                className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest disabled:opacity-50"
+              >
+                Create Requirement
+              </button>
+            </div>
+          </div>
+        )}
 
         {pendingVerifications.length === 0 ? (
           <div className="bg-white p-20 rounded-[3rem] border border-slate-100 text-center shadow-sm">
@@ -106,7 +162,7 @@ const Documents: React.FC<DocumentsProps> = ({ user, allUsers, onUpdateDocuments
           onClick={() => setIsAddingOther(!isAddingOther)}
           className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100"
         >
-          {isAddingOther ? 'Cancel Upload' : 'Upload Other File'}
+          {isAddingOther ? 'Cancel' : '+ Add Document'}
         </button>
       </div>
 

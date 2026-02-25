@@ -172,6 +172,8 @@ const App: React.FC = () => {
               allUsers={allUsers.filter(u => u.societyId === activeSociety.id)} 
               onUpdateDocuments={handleUpdateDocs}
               requiredTypes={activeSociety.requiredDocumentTypes}
+              society={activeSociety}
+              onUpdateSociety={handleUpdateSocietySettings}
             />
           )}
 
@@ -203,7 +205,7 @@ const App: React.FC = () => {
             />
           )}
 
-          {activeTab === 'accounting' && (
+          {activeTab === 'accounting' && user.role === UserRole.ADMIN && (
             <Accounting 
               vouchers={vouchers.filter(v => v.societyId === activeSociety.id)}
               salaries={salaries.filter(s => s.societyId === activeSociety.id)}

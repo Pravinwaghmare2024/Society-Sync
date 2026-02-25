@@ -16,12 +16,12 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'maintenance', label: 'Maintenance', icon: '💰' },
-    { id: 'accounting', label: 'Finance', icon: '🏦' },
     { id: 'documents', label: 'Documents', icon: '📁' },
     { id: 'notices', label: 'Notices', icon: '📢' },
     { id: 'complaints', label: 'Helpdesk', icon: '🛠️' },
     { id: 'staff', label: 'Staff Hub', icon: '👷' },
     ...(isAdmin ? [
+      { id: 'accounting', label: 'Finance', icon: '🏦' },
       { id: 'society-config', label: 'Society Config', icon: '🏢' },
       { id: 'settings', label: 'Settings', icon: '⚙️' },
       { id: 'installation', label: 'Install Guide', icon: '📜' }
