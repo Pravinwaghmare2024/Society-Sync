@@ -12,7 +12,6 @@ const InstallationGuide: React.FC = () => {
             <remove fileExtension=".tsx" />
             <mimeMap fileExtension=".ts" mimeType="application/javascript" />
             <mimeMap fileExtension=".tsx" mimeType="application/javascript" />
-            <mimeMap fileExtension=".json" mimeType="application/json" />
         </staticContent>
         <rewrite>
             <rules>
@@ -108,7 +107,7 @@ Set-Acl $physicalPath $acl`;
           </div>
 
           <div class="warning">
-            <strong>PRO TIP:</strong> If you see a "System Initialization Failure" on boot, check the browser console. Usually, it means the URL Rewrite module is missing or IIS is blocking .tsx files.
+            <strong>PRO TIP:</strong> If you see a "Duplicate MIME Map" error for .json, simply remove the .json mapping from your web.config as it is likely already defined in your global IIS settings.
           </div>
 
           <div class="footer">
@@ -268,7 +267,7 @@ sudo apt install nginx -y`)}
         <div>
           <h4 className="font-black text-amber-900 text-xl tracking-tight uppercase">Critical Troubleshooting</h4>
           <div className="mt-4 space-y-3 text-sm text-amber-800 leading-relaxed font-medium">
-            <p>• <strong>MIME Conflict:</strong> Ensure no other system module is overriding the .ts/.tsx extensions.</p>
+            <p>• <strong>MIME Conflict:</strong> If you get a "Duplicate Entry" error for .json, remove the .json entry from web.config as it's already in your global IIS settings.</p>
             <p>• <strong>Identity:</strong> Use <code>ApplicationPoolIdentity</code> for the App Pool but ensure folder permissions for <code>IIS_IUSRS</code>.</p>
             <p>• <strong>Babel:</strong> Do not pre-minify files; the current runtime requires human-readable TS for on-the-fly transpilation.</p>
           </div>
