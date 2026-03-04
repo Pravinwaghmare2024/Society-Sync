@@ -163,6 +163,7 @@ const App: React.FC = () => {
               records={maintenance.filter(m => m.societyId === activeSociety.id)} 
               onPay={(id, tx, file) => setMaintenance(prev => prev.map(m => m.id === id ? { ...m, status: 'AWAITING_APPROVAL', transactionId: tx, proofFileName: file, paidDate: new Date().toISOString().split('T')[0] } as MaintenanceRecord : m))} 
               onVerify={(id, s) => setMaintenance(prev => prev.map(m => m.id === id ? { ...m, status: s } as MaintenanceRecord : m))} 
+              society={activeSociety}
             />
           )}
           

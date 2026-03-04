@@ -22,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
     { id: 'staff', label: 'Staff Hub', icon: '👷' },
     ...(isAdmin ? [
       { id: 'accounting', label: 'Finance', icon: '🏦' },
-      { id: 'society-config', label: 'Society Config', icon: '🏢' },
+      { id: 'society-config', label: 'Branding & Profile', icon: '🏢' },
       { id: 'settings', label: 'Settings', icon: '⚙️' },
       { id: 'installation', label: 'Install Guide', icon: '📜' }
     ] : []),

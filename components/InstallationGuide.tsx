@@ -12,10 +12,11 @@ const InstallationGuide: React.FC = () => {
             <remove fileExtension=".tsx" />
             <mimeMap fileExtension=".ts" mimeType="application/javascript" />
             <mimeMap fileExtension=".tsx" mimeType="application/javascript" />
+            <mimeMap fileExtension=".json" mimeType="application/json" />
         </staticContent>
         <rewrite>
             <rules>
-                <rule name="SocietySync SPA" stopProcessing="true">
+                <rule name="SocietySync SPA Route" stopProcessing="true">
                     <match url=".*" />
                     <conditions logicalGrouping="MatchAll">
                         <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
@@ -27,6 +28,23 @@ const InstallationGuide: React.FC = () => {
         </rewrite>
     </system.webServer>
 </configuration>`;
+
+  const psScript = `# SocietySync IIS Automated Setup
+$siteName = "SocietySync"
+$port = 8080
+$physicalPath = $PSScriptRoot
+
+# 1. Create App Pool
+New-WebAppPool -Name "SocietySyncPool"
+Set-ItemProperty "IIS:\\AppPools\\SocietySyncPool" -Name "managedRuntimeVersion" -Value ""
+
+# 2. Create Website
+New-Website -Name $siteName -Port $port -PhysicalPath $physicalPath -ApplicationPool "SocietySyncPool"
+
+# 3. Set Permissions
+$acl = Get-Acl $physicalPath
+$acl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule "IIS_IUSRS","ReadAndExecute","Allow"))
+Set-Acl $physicalPath $acl`;
 
   const downloadPdfGuide = () => {
     const guideHtml = `
@@ -58,8 +76,8 @@ const InstallationGuide: React.FC = () => {
 
           <h2>System Requirements</h2>
           <ul>
-            <li>Windows Server 2016 or higher (or Windows 10/11 for local development)</li>
-            <li>IIS 10.0+ with "Static Content" and "HTTP Redirection" features enabled</li>
+            <li>Windows Server 2016 or higher</li>
+            <li>IIS 10.0+ with "Static Content" enabled</li>
             <li><strong>Microsoft URL Rewrite Module 2.1</strong> (Mandatory)</li>
           </ul>
 
@@ -68,42 +86,29 @@ const InstallationGuide: React.FC = () => {
           <div class="step">
             <div class="step-num">1</div>
             <div>
-              <h3>Directory Preparation</h3>
-              <p>Copy all application files (index.html, App.tsx, index.css, etc.) into your target web directory (e.g., <code>C:\\inetpub\\wwwroot\\societysync</code>).</p>
+              <h3>Automated Setup (Recommended)</h3>
+              <p>Run the <code>setup-iis.ps1</code> script as Administrator from the application root folder. This will create the site and set permissions automatically.</p>
             </div>
           </div>
 
           <div class="step">
             <div class="step-num">2</div>
             <div>
-              <h3>MIME Type Configuration</h3>
-              <p>IIS must recognize .ts and .tsx files as JavaScript. Add the following MIME types in IIS Manager:</p>
-              <ul>
-                <li><strong>.ts</strong> -> <code>application/javascript</code></li>
-                <li><strong>.tsx</strong> -> <code>application/javascript</code></li>
-              </ul>
+              <h3>Manual MIME Setup</h3>
+              <p>Ensure <strong>.ts</strong> and <strong>.tsx</strong> are mapped to <code>application/javascript</code> in IIS MIME Types.</p>
             </div>
           </div>
 
           <div class="step">
             <div class="step-num">3</div>
             <div>
-              <h3>Web.Config Setup</h3>
-              <p>Create a file named <code>web.config</code> in the root folder with the following content:</p>
-              <pre>${iisConfig.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
-            </div>
-          </div>
-
-          <div class="step">
-            <div class="step-num">4</div>
-            <div>
-              <h3>Security Permissions</h3>
-              <p>Ensure the <code>IIS_IUSRS</code> group has "Read" and "List Folder Contents" permissions on the physical directory.</p>
+              <h3>Web.Config</h3>
+              <p>The included <code>web.config</code> handles SPA routing and MIME mapping automatically if URL Rewrite is installed.</p>
             </div>
           </div>
 
           <div class="warning">
-            <strong>CRITICAL:</strong> This application uses <code>babel-standalone</code> for client-side transpilation. Do not attempt to pre-bundle the code if you are using this specific edition of SocietySync.
+            <strong>PRO TIP:</strong> If you see a "System Initialization Failure" on boot, check the browser console. Usually, it means the URL Rewrite module is missing or IIS is blocking .tsx files.
           </div>
 
           <div class="footer">
@@ -118,6 +123,7 @@ const InstallationGuide: React.FC = () => {
         </body>
       </html>
     `;
+
 
     const blob = new Blob([guideHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
@@ -220,15 +226,10 @@ sudo apt install nginx -y`)}
           <section className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm mb-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-black">01</div>
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Local IIS Prerequisites</h3>
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Automated IIS Setup</h3>
             </div>
-            <p className="text-sm text-slate-600 leading-relaxed mb-4">You <strong>must</strong> have the URL Rewrite module installed for the application to boot correctly on Windows Server.</p>
-            <div className="flex flex-col sm:flex-row gap-4 mb-4">
-              <a href="https://www.iis.net/downloads/microsoft/url-rewrite" target="_blank" className="flex-1 bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-center justify-between hover:bg-slate-100 transition-colors">
-                <span className="text-xs font-bold text-slate-700">URL Rewrite Module</span>
-                <span className="text-indigo-600 text-xs font-black uppercase tracking-widest">Download Official 🔗</span>
-              </a>
-            </div>
+            <p className="text-sm text-slate-600 leading-relaxed mb-4">We've included a PowerShell script to automate the website creation and permission settings.</p>
+            {codeBlock("PowerShell - setup-iis.ps1", psScript)}
           </section>
 
           <section className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm mb-6">

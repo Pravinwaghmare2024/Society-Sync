@@ -51,16 +51,17 @@ const SocietyConfiguration: React.FC<SocietyConfigurationProps> = ({ settings, o
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-12">
           <div className="flex items-center gap-6">
             <div className="relative group">
-              <div className="w-24 h-24 bg-slate-100 rounded-[2rem] border-4 border-white shadow-xl flex items-center justify-center overflow-hidden">
+              <div className="w-28 h-28 bg-slate-100 rounded-[2.5rem] border-4 border-white shadow-xl flex items-center justify-center overflow-hidden transition-transform group-hover:scale-105">
                 {localSettings.logoUrl ? (
                   <img src={localSettings.logoUrl} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-3xl font-black text-slate-300">S</span>
+                  <span className="text-4xl font-black text-slate-300">S</span>
                 )}
               </div>
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-1 -right-1 w-8 h-8 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-colors"
+                className="absolute -bottom-2 -right-2 w-10 h-10 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all hover:rotate-12"
+                title="Update Society Logo"
               >
                 📸
               </button>
@@ -73,8 +74,8 @@ const SocietyConfiguration: React.FC<SocietyConfigurationProps> = ({ settings, o
               />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Society Profile</h3>
-              <p className="text-sm text-slate-500 font-medium">Manage your society's public identity and contact details.</p>
+              <h3 className="text-3xl font-black text-slate-900 tracking-tight">Branding & Identity</h3>
+              <p className="text-sm text-slate-500 font-medium">Define your society's visual presence and official name.</p>
             </div>
           </div>
           
@@ -82,100 +83,145 @@ const SocietyConfiguration: React.FC<SocietyConfigurationProps> = ({ settings, o
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className={`px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 ${
+              className={`px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 ${
                 isSaving ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
               }`}
             >
-              {isSaving ? 'Syncing...' : '💾 Save Changes'}
+              {isSaving ? 'Syncing...' : '💾 Save Branding'}
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Society Name</label>
-              <input
-                type="text"
-                name="name"
-                value={localSettings.name}
-                onChange={handleChange}
-                className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                placeholder="Enter society name"
-              />
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          <div className="lg:col-span-2 space-y-10">
+            <section className="space-y-6">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="w-6 h-6 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-xs">🏷️</span>
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Core Identity</h4>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Society Display Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={localSettings.name}
+                    onChange={handleChange}
+                    className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    placeholder="e.g. Grand View Residency"
+                  />
+                  <p className="text-[9px] text-slate-400 ml-1 italic">This name appears on the dashboard and all official documents.</p>
+                </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Society Code</label>
-              <input
-                type="text"
-                name="code"
-                value={localSettings.code}
-                onChange={handleChange}
-                className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                placeholder="e.g. GVR_001"
-              />
-            </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">System Society Code</label>
+                  <input
+                    type="text"
+                    name="code"
+                    value={localSettings.code}
+                    onChange={handleChange}
+                    className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    placeholder="e.g. GVR_001"
+                  />
+                </div>
+              </div>
+            </section>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Registration Number</label>
-              <input
-                type="text"
-                name="registrationNo"
-                value={localSettings.registrationNo}
-                onChange={handleChange}
-                className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                placeholder="Reg. No."
-              />
-            </div>
+            <section className="space-y-6">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="w-6 h-6 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-xs">📍</span>
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Legal & Contact</h4>
+              </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Number</label>
-              <input
-                type="text"
-                name="gstNumber"
-                value={localSettings.gstNumber}
-                onChange={handleChange}
-                className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                placeholder="GSTIN"
-              />
-            </div>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Registered Address</label>
+                  <textarea
+                    name="address"
+                    value={localSettings.address}
+                    onChange={handleChange}
+                    className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all h-24 resize-none"
+                    placeholder="Full registered address"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Registration Number</label>
+                    <input
+                      type="text"
+                      name="registrationNo"
+                      value={localSettings.registrationNo}
+                      onChange={handleChange}
+                      className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      placeholder="Reg. No."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Number</label>
+                    <input
+                      type="text"
+                      name="gstNumber"
+                      value={localSettings.gstNumber}
+                      onChange={handleChange}
+                      className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      placeholder="GSTIN"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
 
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Official Address</label>
-              <textarea
-                name="address"
-                value={localSettings.address}
-                onChange={handleChange}
-                className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all h-[124px] resize-none"
-                placeholder="Full registered address"
-              />
+          <div className="space-y-8">
+            <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6">Contact Channels</h4>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Official Phone</label>
+                  <input
+                    type="text"
+                    name="phone"
+                    value={localSettings.phone || ''}
+                    onChange={handleChange}
+                    className="w-full bg-white border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
+                    placeholder="+91 00000 00000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Official Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={localSettings.email || ''}
+                    onChange={handleChange}
+                    className="w-full bg-white border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
+                    placeholder="admin@society.com"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact Phone</label>
-                <input
-                  type="text"
-                  name="phone"
-                  value={localSettings.phone || ''}
-                  onChange={handleChange}
-                  className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                  placeholder="+91 00000 00000"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Official Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={localSettings.email || ''}
-                  onChange={handleChange}
-                  className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                  placeholder="admin@society.com"
-                />
+            <div className="bg-indigo-900 text-white p-8 rounded-[2.5rem] shadow-xl shadow-indigo-100">
+              <div className="w-12 h-12 bg-indigo-800 rounded-2xl flex items-center justify-center text-2xl mb-6">✨</div>
+              <h4 className="text-sm font-black uppercase tracking-widest mb-3">Live Preview</h4>
+              <p className="text-xs text-indigo-200 font-medium leading-relaxed mb-6">
+                Your logo and name are automatically synced to the sidebar and all resident portals.
+              </p>
+              <div className="flex items-center gap-4 bg-indigo-800/50 p-4 rounded-2xl border border-indigo-700/50">
+                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+                  {localSettings.logoUrl ? (
+                    <img src={localSettings.logoUrl} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-indigo-600 font-black">S</span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-widest truncate">{localSettings.name || 'Society Name'}</p>
+                  <p className="text-[8px] text-indigo-300 font-bold uppercase tracking-widest">Active Branding</p>
+                </div>
               </div>
             </div>
           </div>

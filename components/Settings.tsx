@@ -97,7 +97,7 @@ const Settings: React.FC<SettingsProps> = ({
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
       <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit flex-wrap gap-1 border border-slate-200 shadow-inner overflow-hidden">
         {[
-          { id: 'society', label: 'Identity' },
+          { id: 'branding', label: 'Branding' },
           { id: 'helpdesk', label: 'Helpdesk & Docs' },
           { id: 'users', label: 'Residents' },
           { id: 'staff-config', label: 'Staff Hub' },
@@ -115,7 +115,7 @@ const Settings: React.FC<SettingsProps> = ({
       </div>
 
       <div className="bg-white p-8 lg:p-12 rounded-[3rem] border border-slate-100 shadow-sm min-h-[500px]">
-        {activeTab === 'society' && (
+        {activeTab === 'branding' && (
           <div className="space-y-12 animate-in slide-in-from-left-4 duration-300">
             <div>
               <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">

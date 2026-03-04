@@ -7,9 +7,10 @@ interface MaintenanceProps {
   records: MaintenanceRecord[];
   onPay: (id: string, transactionId?: string, fileName?: string) => void;
   onVerify?: (id: string, status: 'PAID' | 'PENDING') => void;
+  society: SocietySettings;
 }
 
-const Maintenance: React.FC<MaintenanceProps> = ({ role, records, onPay, onVerify }) => {
+const Maintenance: React.FC<MaintenanceProps> = ({ role, records, onPay, onVerify, society }) => {
   const [filter, setFilter] = useState('ALL');
   const [showProofModal, setShowProofModal] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState('');
@@ -36,31 +37,38 @@ const Maintenance: React.FC<MaintenanceProps> = ({ role, records, onPay, onVerif
   };
 
   const downloadReceipt = (record: MaintenanceRecord) => {
-    const societyName = "Grand View Residency";
+    const societyName = society.name;
+    const societyLogo = society.logoUrl;
     const receiptHtml = `
       <html>
         <head>
           <title>Maintenance Receipt - ${record.id}</title>
           <style>
-            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
-            .receipt-container { max-width: 600px; margin: auto; border: 2px solid #f1f5f9; padding: 40px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-            .header { text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 30px; }
-            .society-name { font-size: 24px; font-weight: 800; color: #4f46e5; margin: 0; }
-            .receipt-title { text-transform: uppercase; letter-spacing: 2px; font-size: 12px; font-weight: 700; color: #94a3b8; margin-top: 5px; }
-            .details { margin-bottom: 30px; }
-            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px border-slate-50; }
-            .label { font-weight: 600; color: #64748b; }
-            .value { font-weight: 800; color: #1e293b; }
-            .amount-section { background: #f8fafc; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px; }
-            .amount-label { font-size: 14px; color: #64748b; font-weight: 600; }
-            .amount-value { font-size: 32px; font-weight: 900; color: #1e293b; }
-            .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9; pt: 20px; }
-            .stamp { width: 100px; height: 100px; border: 4px solid #10b981; border-radius: 50%; display: flex; items-center: center; justify-content: center; font-weight: 900; color: #10b981; text-transform: uppercase; transform: rotate(-15deg); margin: 20px auto; opacity: 0.6; }
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; background: #f8fafc; }
+            .receipt-container { max-width: 600px; margin: auto; border: 1px solid #e2e8f0; padding: 40px; border-radius: 32px; background: white; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.05); }
+            .header { text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 30px; margin-bottom: 30px; }
+            .logo-container { width: 80px; height: 80px; background: #4f46e5; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; overflow: hidden; }
+            .logo-container img { width: 100%; height: 100%; object-fit: cover; }
+            .logo-placeholder { color: white; font-size: 32px; font-weight: 900; }
+            .society-name { font-size: 28px; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: -0.02em; }
+            .receipt-title { text-transform: uppercase; letter-spacing: 3px; font-size: 11px; font-weight: 800; color: #6366f1; margin-top: 8px; }
+            .details { margin-bottom: 40px; }
+            .detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f8fafc; }
+            .label { font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
+            .value { font-weight: 800; color: #1e293b; font-size: 14px; }
+            .amount-section { background: #f1f5f9; padding: 30px; border-radius: 24px; text-align: center; margin-top: 20px; border: 1px solid #e2e8f0; }
+            .amount-label { font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
+            .amount-value { font-size: 40px; font-weight: 900; color: #0f172a; }
+            .footer { margin-top: 50px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 30px; }
+            .stamp { width: 120px; height: 120px; border: 6px solid #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #10b981; text-transform: uppercase; transform: rotate(-15deg); margin: 30px auto; opacity: 0.4; font-size: 24px; }
           </style>
         </head>
         <body>
           <div class="receipt-container">
             <div class="header">
+              <div class="logo-container">
+                ${societyLogo ? `<img src="${societyLogo}" alt="Logo" />` : `<div class="logo-placeholder">${societyName[0]}</div>`}
+              </div>
               <h1 class="society-name">${societyName}</h1>
               <div class="receipt-title">Official Payment Receipt</div>
             </div>
@@ -72,13 +80,13 @@ const Maintenance: React.FC<MaintenanceProps> = ({ role, records, onPay, onVerif
               <div class="detail-row"><span class="label">Payment Date:</span> <span class="value">${record.paidDate || 'N/A'}</span></div>
             </div>
             <div class="amount-section">
-              <div class="amount-label">Amount Paid</div>
+              <div class="amount-label">Total Amount Paid</div>
               <div class="amount-value">₹${record.amount.toLocaleString()}</div>
             </div>
             <div class="stamp">PAID</div>
             <div class="footer">
               <p>Thank you for your timely payment. This is a computer-generated receipt and does not require a physical signature.</p>
-              <p>&copy; 2023 ${societyName} Management</p>
+              <p>&copy; 2023 ${societyName} Management System</p>
             </div>
           </div>
           <script>window.print();</script>
