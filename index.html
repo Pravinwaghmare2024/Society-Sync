@@ -10,56 +10,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
       window.process = { env: { API_KEY: "", NODE_ENV: "production" } };
-      
-      window.onerror = function(msg, url, line, col, error) {
-        console.error("System Boot Error:", {msg, url, line, error});
-        const root = document.getElementById('root');
-        if (root) {
-          root.innerHTML = `
-            <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:sans-serif; background:#f8fafc; color:#1e293b; padding:20px;">
-              <div style="background:white; padding:40px; border-radius:32px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); text-align:center; max-width:500px; border:1px solid #fee2e2;">
-                <div style="font-size:48px; margin-bottom:16px;">🏢</div>
-                <h2 style="font-weight:900; font-size:24px; color:#ef4444; margin-bottom:16px;">System Initialization Failure</h2>
-                <div style="background:#fef2f2; padding:16px; border-radius:12px; margin-bottom:24px; text-align:left;">
-                  <p style="font-size:12px; font-weight:700; color:#991b1b; margin-bottom:8px;">Diagnostic Report:</p>
-                  <code style="color:#b91c1c; font-size:11px; word-break:break-all; font-family:monospace;">${msg}</code>
-                  <p style="font-size:10px; color:#64748b; margin-top:8px;">Location: ${url} at line ${line}</p>
-                </div>
-                <div style="text-align:left; font-size:13px; color:#475569; margin-bottom:24px;">
-                  <p style="margin-bottom:8px;"><strong>Common IIS Fixes:</strong></p>
-                  <ul style="list-style-type:disc; padding-left:20px; line-height: 1.6;">
-                    <li>Clear browser cache (Ctrl+F5).</li>
-                    <li>Verify <strong>URL Rewrite</strong> module is installed.</li>
-                    <li>Ensure <strong>MIME Types</strong> for .tsx are <code>application/javascript</code>.</li>
-                  </ul>
-                </div>
-                <button onclick="location.reload()" style="background:#4f46e5; color:white; border:none; padding:14px; border-radius:12px; font-weight:700; cursor:pointer; width:100%;">Retry Boot Sequence</button>
-              </div>
-            </div>
-          `;
-        }
-        return false;
-      };
     </script>
-    <script type="importmap">
-{
-  "imports": {
-    "@google/genai": "https://esm.sh/@google/genai@1.37.0",
-    "react": "https://esm.sh/react@19.0.0",
-    "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "recharts": "https://esm.sh/recharts@2.15.0?deps=react@19.0.0,react-dom@19.0.0",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
-  }
-}
-</script>
     <style>
         #root { height: 100vh; }
         .spinner { width: 32px; height: 32px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.2/babel.min.js"></script>
 </head>
 <body>
     <div id="root">
@@ -68,6 +24,6 @@
             <p style="margin-top:20px; color:#64748b; font-weight:800; font-size:10px; text-transform:uppercase; letter-spacing:2px;">Mounting SocietySync Core...</p>
         </div>
     </div>
-    <script type="text/babel" data-presets="react,typescript" data-type="module" src="index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
 </body>
 </html>

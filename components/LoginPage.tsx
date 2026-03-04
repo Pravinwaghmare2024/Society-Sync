@@ -50,11 +50,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ societies, allUsers, servers, onL
       const foundUser = allUsers.find(u => 
         u.username.toLowerCase() === username.toLowerCase() && 
         u.password === password && 
-        u.societyId === society.id
+        u.societyId === society.id &&
+        u.role === activeRoleTab
       );
 
       if (!foundUser) {
-        setError("Invalid credentials for this society instance.");
+        setError(`Invalid credentials for ${activeRoleTab === UserRole.ADMIN ? 'Admin / Management' : 'Flat Owner'} role.`);
         setLoading(false);
         return;
       }
@@ -139,14 +140,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ societies, allUsers, servers, onL
                 onClick={() => setActiveRoleTab(UserRole.RESIDENT)}
                 className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeRoleTab === UserRole.RESIDENT ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}
               >
-                Resident
+                Flat Owner
               </button>
               <button 
                 type="button"
                 onClick={() => setActiveRoleTab(UserRole.ADMIN)}
                 className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeRoleTab === UserRole.ADMIN ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}
               >
-                Management
+                Admin / Management
               </button>
             </div>
 
@@ -168,7 +169,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ societies, allUsers, servers, onL
                 <input 
                   required
                   type="text" 
-                  placeholder="Resident ID"
+                  placeholder="Flat Owner ID"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
@@ -201,10 +202,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ societies, allUsers, servers, onL
             </button>
           </form>
 
-          <div className="bg-slate-50 p-6 border-t border-slate-100 text-center">
+          <div className="bg-slate-50 p-6 border-t border-slate-100 text-center space-y-2">
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
               Demo Instance v3.1 • Infrastructure: <span className="text-green-500">Tier-IV</span>
             </p>
+            <div className="flex justify-center gap-4 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+              <span>Admin: admin / admin123</span>
+              <span>Flat Owner: john / password123</span>
+            </div>
           </div>
         </div>
       </div>

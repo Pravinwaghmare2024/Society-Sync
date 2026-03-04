@@ -22,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
     { id: 'staff', label: 'Staff Hub', icon: '👷' },
     ...(isAdmin ? [
       { id: 'accounting', label: 'Finance', icon: '🏦' },
-      { id: 'society-config', label: 'Branding & Profile', icon: '🏢' },
+      { id: 'society-config', label: 'Branding & Identity', icon: '🏢' },
       { id: 'settings', label: 'Settings', icon: '⚙️' },
       { id: 'installation', label: 'Install Guide', icon: '📜' }
     ] : []),
@@ -68,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
         <div className="p-5 bg-slate-800/50 rounded-3xl mb-4 border border-slate-800">
           <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Authenticated ID</p>
           <p className="text-xs font-bold text-white truncate">
-            {isAdmin ? 'System Admin' : 'Resident Portal'}
+            {isAdmin ? 'System Admin' : 'Flat Owner Portal'}
           </p>
           <div className="flex items-center gap-2 mt-2">
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>

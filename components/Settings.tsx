@@ -30,7 +30,7 @@ const Settings: React.FC<SettingsProps> = ({
   onResetDatabase,
   onAddSociety, onUpdateSociety, onDeleteSociety
 }) => {
-  const [activeTab, setActiveTab] = useState<string>('society');
+  const [activeTab, setActiveTab] = useState<string>('helpdesk');
   const [localSettings, setLocalSettings] = useState<SocietySettings>(settings);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -42,22 +42,6 @@ const Settings: React.FC<SettingsProps> = ({
   });
 
   useEffect(() => { setLocalSettings(settings); }, [settings]);
-
-  const handleSaveSociety = () => {
-    onUpdateSettings(localSettings);
-    alert("Society profile sync successful.");
-  };
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLocalSettings({ ...localSettings, logoUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleAddCategory = () => {
     if (!newCat.trim()) return;
@@ -97,9 +81,8 @@ const Settings: React.FC<SettingsProps> = ({
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
       <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit flex-wrap gap-1 border border-slate-200 shadow-inner overflow-hidden">
         {[
-          { id: 'branding', label: 'Branding' },
           { id: 'helpdesk', label: 'Helpdesk & Docs' },
-          { id: 'users', label: 'Residents' },
+          { id: 'users', label: 'Flat Owners' },
           { id: 'staff-config', label: 'Staff Hub' },
           { id: 'multi-society', label: 'Societies' },
           { id: 'database', label: 'System Data' }
@@ -115,72 +98,6 @@ const Settings: React.FC<SettingsProps> = ({
       </div>
 
       <div className="bg-white p-8 lg:p-12 rounded-[3rem] border border-slate-100 shadow-sm min-h-[500px]">
-        {activeTab === 'branding' && (
-          <div className="space-y-12 animate-in slide-in-from-left-4 duration-300">
-            <div>
-              <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">
-                <span className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">🏢</span>
-                Society Branding
-              </h3>
-              
-              <div className="flex flex-col md:flex-row gap-12 items-start md:items-center">
-                <div className="relative group">
-                  <div className="w-32 h-32 bg-slate-100 rounded-[2.5rem] border-4 border-white shadow-xl flex items-center justify-center overflow-hidden">
-                    {localSettings.logoUrl ? (
-                      <img src={localSettings.logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-4xl font-black text-slate-300">S</span>
-                    )}
-                  </div>
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute -bottom-2 -right-2 w-10 h-10 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-colors"
-                  >
-                    📸
-                  </button>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept="image/*" 
-                    onChange={handleLogoUpload} 
-                  />
-                </div>
-                
-                <div className="flex-1 space-y-6 w-full">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Official Society Name</label>
-                    <input 
-                      type="text" 
-                      value={localSettings.name} 
-                      onChange={e => setLocalSettings({...localSettings, name: e.target.value})} 
-                      className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all" 
-                    />
-                    <p className="text-[9px] text-slate-400 ml-1">This name will appear on all receipts, notices, and the dashboard header.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Registered Address</label>
-                    <textarea 
-                      value={localSettings.address} 
-                      onChange={e => setLocalSettings({...localSettings, address: e.target.value})} 
-                      className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all h-24 resize-none" 
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-8 border-t border-slate-50 flex justify-end">
-              <button 
-                onClick={handleSaveSociety} 
-                className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95"
-              >
-                Sync Identity
-              </button>
-            </div>
-          </div>
-        )}
-
         {activeTab === 'helpdesk' && (
           <div className="space-y-12 animate-in slide-in-from-left-4 duration-300">
             <div>
@@ -238,7 +155,7 @@ const Settings: React.FC<SettingsProps> = ({
         {activeTab === 'users' && (
           <div className="space-y-8 animate-in slide-in-from-left-4">
              <div className="bg-slate-50 p-8 rounded-[2.5rem]">
-               <h4 className="font-black mb-6 uppercase text-xs">Provision New Resident</h4>
+               <h4 className="font-black mb-6 uppercase text-xs">Provision New Flat Owner</h4>
                <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                  <input required type="text" placeholder="Full Name" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="bg-white p-4 rounded-2xl font-bold text-sm outline-none" />
                  <input required type="text" placeholder="Username" value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} className="bg-white p-4 rounded-2xl font-bold text-sm outline-none" />

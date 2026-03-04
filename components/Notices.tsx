@@ -140,7 +140,7 @@ const Notices: React.FC<NoticesProps> = ({ role, notices, addNotice }) => {
                     onClick={handlePublish}
                     className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all"
                   >
-                    Publish to Residents
+                    Publish to Flat Owners
                   </button>
                   <button
                     onClick={() => setGeneratedContent('')}
